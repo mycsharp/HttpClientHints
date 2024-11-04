@@ -57,9 +57,10 @@ public static class HttpClientHintsRegistration
             headers.Add("Sec-CH-UA-Mobile");
         }
 
-        if (!string.IsNullOrEmpty(httpClientHintsConfig.Additional))
+        // customization
+        if (httpClientHintsConfig.Additional is not null)
         {
-            headers.Add(httpClientHintsConfig.Additional);
+            headers.AddRange(httpClientHintsConfig.Additional);
         }
 
         // register middleware config

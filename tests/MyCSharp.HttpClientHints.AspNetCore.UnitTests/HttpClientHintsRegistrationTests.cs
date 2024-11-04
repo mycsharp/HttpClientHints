@@ -71,15 +71,15 @@ public class HttpClientHintsRegistrationTests
     {
         // Arrange
         ServiceCollection services = new();
-        const string customHeader = "X-Custom-Header";
+        string[] customHeaders = ["X-Custom-Header"];
 
         // Act
-        services.AddHttpClientHints(options => options.Additional = customHeader);
+        services.AddHttpClientHints(options => options.Additional = customHeaders);
         ServiceProvider serviceProvider = services.BuildServiceProvider();
         HttpClientHintsMiddlewareConfig options = serviceProvider.GetRequiredService<IOptions<HttpClientHintsMiddlewareConfig>>().Value;
 
         // Assert
-        Assert.Contains(customHeader, options.ResponseHeader);
+        Assert.Contains("X-Custom-Header", options.ResponseHeader);
     }
 
     [Fact]

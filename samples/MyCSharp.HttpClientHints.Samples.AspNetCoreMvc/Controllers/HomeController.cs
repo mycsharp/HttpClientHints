@@ -2,20 +2,19 @@
 
 using Microsoft.AspNetCore.Mvc;
 
-namespace MyCSharp.HttpClientHints.Samples.AspNetCoreMvc.Controllers
+namespace MyCSharp.HttpClientHints.Samples.AspNetCoreMvc.Controllers;
+
+public class HomeController : Controller
 {
-    public class HomeController : Controller
+    private readonly ILogger<HomeController> _logger;
+
+    public HomeController(ILogger<HomeController> logger)
     {
-        private readonly ILogger<HomeController> _logger;
+        _logger = logger;
+    }
 
-        public HomeController(ILogger<HomeController> logger)
-        {
-            _logger = logger;
-        }
-
-        public IActionResult Index()
-        {
-            return View();
-        }
+    public IActionResult Index()
+    {
+        return View();
     }
 }

@@ -1,0 +1,74 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35424.110
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C605EF71-713B-458F-AA31-E6E29FD25F14}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3CF449E7-2707-44A2-BACC-6F9A5C8DBA63}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{E23F6AE5-FF68-4EC7-ACEE-91886E1A15AC}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+		Directory.Build.props = Directory.Build.props
+		Directory.Packages.props = Directory.Packages.props
+		global.json = global.json
+		LICENSE = LICENSE
+		NuGet.config = NuGet.config
+		README.md = README.md
+		SECURITY.md = SECURITY.md
+		version.json = version.json
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints", "src\MyCSharp.HttpClientHints\MyCSharp.HttpClientHints.csproj", "{3FC14B16-D6F7-4A28-8562-0BD7EDD6A3DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints.AspNetCore", "src\MyCSharp.HttpClientHints.AspNetCore\MyCSharp.HttpClientHints.AspNetCore.csproj", "{8A434079-78A3-41C5-8319-3165B0D10E51}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints.AspNetCore.UnitTests", "tests\MyCSharp.HttpClientHints.AspNetCore.UnitTests\MyCSharp.HttpClientHints.AspNetCore.UnitTests.csproj", "{2BDA44E4-1E40-4B97-8903-B8C36C35B8C4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints.UnitTests", "tests\MyCSharp.HttpClientHints.UnitTests\MyCSharp.HttpClientHints.UnitTests.csproj", "{E60AE9AF-09E5-4FE0-A005-5F697599E508}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{DD28B2F1-1CF8-4070-A997-83DE356EA88C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints.Samples.AspNetCoreMvc", "samples\MyCSharp.HttpClientHints.Samples.AspNetCoreMvc\MyCSharp.HttpClientHints.Samples.AspNetCoreMvc.csproj", "{2F2815DE-1730-4645-B6CF-13599BBA3B2C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3FC14B16-D6F7-4A28-8562-0BD7EDD6A3DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FC14B16-D6F7-4A28-8562-0BD7EDD6A3DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FC14B16-D6F7-4A28-8562-0BD7EDD6A3DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FC14B16-D6F7-4A28-8562-0BD7EDD6A3DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A434079-78A3-41C5-8319-3165B0D10E51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A434079-78A3-41C5-8319-3165B0D10E51}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A434079-78A3-41C5-8319-3165B0D10E51}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A434079-78A3-41C5-8319-3165B0D10E51}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BDA44E4-1E40-4B97-8903-B8C36C35B8C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BDA44E4-1E40-4B97-8903-B8C36C35B8C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BDA44E4-1E40-4B97-8903-B8C36C35B8C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BDA44E4-1E40-4B97-8903-B8C36C35B8C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E60AE9AF-09E5-4FE0-A005-5F697599E508}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E60AE9AF-09E5-4FE0-A005-5F697599E508}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E60AE9AF-09E5-4FE0-A005-5F697599E508}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E60AE9AF-09E5-4FE0-A005-5F697599E508}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F2815DE-1730-4645-B6CF-13599BBA3B2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F2815DE-1730-4645-B6CF-13599BBA3B2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F2815DE-1730-4645-B6CF-13599BBA3B2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F2815DE-1730-4645-B6CF-13599BBA3B2C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3FC14B16-D6F7-4A28-8562-0BD7EDD6A3DC} = {C605EF71-713B-458F-AA31-E6E29FD25F14}
+		{8A434079-78A3-41C5-8319-3165B0D10E51} = {C605EF71-713B-458F-AA31-E6E29FD25F14}
+		{2BDA44E4-1E40-4B97-8903-B8C36C35B8C4} = {3CF449E7-2707-44A2-BACC-6F9A5C8DBA63}
+		{E60AE9AF-09E5-4FE0-A005-5F697599E508} = {3CF449E7-2707-44A2-BACC-6F9A5C8DBA63}
+		{2F2815DE-1730-4645-B6CF-13599BBA3B2C} = {DD28B2F1-1CF8-4070-A997-83DE356EA88C}
+	EndGlobalSection
+EndGlobal

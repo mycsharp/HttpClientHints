@@ -1,0 +1,61 @@
+<Project>
+
+    <PropertyGroup>
+        <Authors>MyCSharp.de, Benjamin Abt, Günther Foidl and Contributors</Authors>
+        <Product>MyCSharp.HttpClientHints</Product>
+        <DefaultLanguage>en-US</DefaultLanguage>
+        <NoPackageAnalysis>true</NoPackageAnalysis>
+        <DebugType>embedded</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Env">
+
+        <IsTestProject>$(MSBuildProjectName.Contains('Test'))</IsTestProject>
+        <IsBenchmarkProject>$(MsBuildProjectName.Contains('Benchmark'))</IsBenchmarkProject>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Package">
+        <PackageProjectUrl>https://github.com/mycsharp/HttpClientHints</PackageProjectUrl>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <Description>HTTP Client Hints for .NET</Description>
+        <MinClientVersion>2.12</MinClientVersion>
+        <IsPackable>false</IsPackable>
+        <PackageTags>UserAgent, User Agent, Client Hints, Browser, Client, Detector, Detection, Console, ASP, Desktop, Mobile</PackageTags>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Project Defaults">
+        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    </PropertyGroup>
+
+    <PropertyGroup Label="C#">
+        <LangVersion>12.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(IsTestProject)' != 'true' AND '$(IsBenchmarkProject)' != 'true'">
+        <GenerateDocumentationFile Condition="'$(Configuration)' == 'Release'">true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MyCSharp.HttpClientHints.snk</AssemblyOriginatorKeyFile>
+
+        <PublicKey>
+            002400000480000094000000060200000024000052534131000400000100010049809bc922cd71
+            a1539dd60826caafead07781420334254bdc0c276165f7313f241833f972437ee215684b4e10de
+            49501812fa7fcdb18baead466e32978ca3e45ff7c82616283718d6ab2b729ab40e656fb856a845
+            cede9fdd2b449fc34a99edf258524ce5e1f958a9598efba2953e34e179b13c086500f9b72ca08a
+            065effe0
+        </PublicKey>
+    </PropertyGroup>
+
+    <!-- Block Projects with Privacy/Security Concerns -->
+    <Target Name="CheckBlockedPackages" AfterTargets="ResolvePackageDependenciesForBuild">
+        <Error Code="420" Text="Blocked package dependency detected: %(PackageDependencies.Identity)"
+             Condition="'%(PackageDependencies.Identity)' == 'Devlooped.SponsorLink'" />
+    </Target>
+
+</Project>

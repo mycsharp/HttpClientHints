@@ -1,0 +1,58 @@
+@{
+    ViewData["Title"] = "Home Page";
+
+    var httpContext = this.Context;
+    var clientHints = MyCSharp.HttpClientHints.AspNetCore.HttpClientHintsHttpContextExtensions.GetClientHints(httpContext.Request.Headers);
+}
+
+<div class="text-center">
+    <h1 class="display-4">HTTP Client Hints</h1>
+    <div>
+        <table class="table">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Header</th>
+                    <th scope="col">Value</th>
+                    <th scope="col">Last</th>
+                    <th scope="col">Handle</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>User-Agent</td>
+                    <td>@(clientHints.UserAgent)</td>
+                </tr>
+
+                <tr>
+                    <td>Sec-CH-UA</td>
+                    <td>@(clientHints.UA)</td>
+                </tr>
+                <tr>
+                    <td>Sec-CH-UA-Platform</td>
+                    <td>@(clientHints.Platform)</td>
+                </tr>
+                <tr>
+                    <td>Sec-CH-UA-Platform-Version</td>
+                    <td>@(clientHints.PlatformVersion)</td>
+                </tr>
+                <tr>
+                    <td>Sec-CH-UA-Arch</td>
+                    <td>@(clientHints.Architecture)</td>
+                </tr>
+                <tr>
+                    <td>Sec-CH-UA-Full-Version-List"</td>
+                    <td>@(clientHints.FullVersionList)</td>
+                </tr>
+                <tr>
+                    <td>Sec-CH-UA-Model</td>
+                    <td>@(clientHints.Model)</td>
+                </tr>
+                <tr>
+                    <td>Sec-CH-UA-Mobile</td>
+                    <td>@(clientHints.Mobile)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MyCSharp.HttpClientHints.AspNetCore\MyCSharp.HttpClientHints.AspNetCore.csproj" />
+  </ItemGroup>
+
+</Project>

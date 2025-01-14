@@ -1,6 +1,5 @@
 // Copyright © myCSharp.de - all rights reserved
 
-using FluentAssertions;
 using Xunit;
 
 namespace MyCSharp.HttpClientHints.UnitTests;
@@ -21,6 +20,6 @@ public class HttpClientHintsInterpreterTests
         bool? result = HttpClientHintsInterpreter.IsMobile(input);
 
         // Assert
-        result.Should().Be(expectedResult);
+        Assert.Equal(expectedResult, result);
     }
 }

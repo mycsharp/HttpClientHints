@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
 
-
 namespace MyCSharp.HttpClientHints.AspNetCore.UnitTests;
 
 public class HttpClientHintsRegistrationTests

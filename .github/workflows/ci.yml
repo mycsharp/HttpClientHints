@@ -15,6 +15,6 @@ jobs:
     uses: mycsharp/github-actions/.github/workflows/dotnet-nuget-build-multi-sdk.yml@main
     with:
       configuration: Release
-      dotnet-sdks: '["8.x", "9.x", "10.x"]'
+      dotnet_sdks: '["8.x", "9.x", "10.x"]'
     secrets:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

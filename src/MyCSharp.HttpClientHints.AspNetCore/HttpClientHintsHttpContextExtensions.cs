@@ -1,6 +1,7 @@
 // Copyright © myCSharp.de - all rights reserved
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
@@ -10,14 +11,27 @@ namespace MyCSharp.HttpClientHints.AspNetCore;
 public static class HttpClientHintsHttpContextExtensions
 {
     /// <summary>
+    /// The cache key used to store the client hints in the HttpContext.Items dictionary.
+    /// </summary>
+    private const string ClientHintsCacheKey = "__HttpClientHints";
+
+    /// <summary>
     /// Retrieves the <see cref="HttpClientHints"/> from the current HTTP context.
     /// </summary>
     /// <param name="context">The HTTP context containing the request headers.</param>
     /// <returns>An instance of <see cref="HttpClientHints"/> populated with the relevant header values.</returns>
     public static HttpClientHints GetClientHints(this HttpContext context)
     {
-        IHeaderDictionary headers = context.Request.Headers;
-        return headers.GetClientHints();
+        // Check if client hints are already cached for this request
+        if (context.Items.TryGetValue(ClientHintsCacheKey, out var cached) && cached is HttpClientHints hints)
+        {
+            return hints;
+        }
+        
+        // Create and cache new client hints
+        var newHints = context.Request.Headers.GetClientHints();
+        context.Items[ClientHintsCacheKey] = newHints;
+        return newHints;
     }
 
     /// <summary>
@@ -27,25 +41,36 @@ public static class HttpClientHintsHttpContextExtensions
     /// <returns>An instance of <see cref="HttpClientHints"/> populated with the relevant header values.</returns>
     public static HttpClientHints GetClientHints(this IHeaderDictionary headers)
     {
-        // user agent
-        string? userAgent = headers["User-Agent"].FirstOrDefault();
-        string? ua = headers["Sec-CH-UA"].FirstOrDefault();
+        // User Agent
+        headers.TryGetValue("User-Agent", out StringValues userAgentValues);
+        string? userAgent = userAgentValues.Count > 0 ? userAgentValues[0] : null;
+        
+        headers.TryGetValue("Sec-CH-UA", out StringValues uaValues);
+        string? ua = uaValues.Count > 0 ? uaValues[0] : null;
 
-        // platform
-        string? platform = headers["Sec-CH-UA-Platform"].FirstOrDefault();
-        string? platformVersion = headers["Sec-CH-UA-Platform-Version"].FirstOrDefault();
+        // Platform
+        headers.TryGetValue("Sec-CH-UA-Platform", out StringValues platformValues);
+        string? platform = platformValues.Count > 0 ? platformValues[0] : null;
+        
+        headers.TryGetValue("Sec-CH-UA-Platform-Version", out StringValues platformVersionValues);
+        string? platformVersion = platformVersionValues.Count > 0 ? platformVersionValues[0] : null;
 
-        // architecture
-        string? architecture = headers["Sec-CH-UA-Arch"].FirstOrDefault();
+        // Architecture
+        headers.TryGetValue("Sec-CH-UA-Arch", out StringValues architectureValues);
+        string? architecture = architectureValues.Count > 0 ? architectureValues[0] : null;
 
-        // other
-        string? fullVersionList = headers["Sec-CH-UA-Full-Version-List"].FirstOrDefault();
+        // Other
+        headers.TryGetValue("Sec-CH-UA-Full-Version-List", out StringValues fullVersionListValues);
+        string? fullVersionList = fullVersionListValues.Count > 0 ? fullVersionListValues[0] : null;
 
-        // device
-        string? model = headers["Sec-CH-UA-Model"].FirstOrDefault();
-        bool? mobile = HttpClientHintsInterpreter.IsMobile(headers["Sec-CH-UA-Mobile"].FirstOrDefault());
+        // Device
+        headers.TryGetValue("Sec-CH-UA-Model", out StringValues modelValues);
+        string? model = modelValues.Count > 0 ? modelValues[0] : null;
+        
+        headers.TryGetValue("Sec-CH-UA-Mobile", out StringValues mobileValues);
+        bool? mobile = HttpClientHintsInterpreter.IsMobile(mobileValues.Count > 0 ? mobileValues[0] : null);
 
-        // return the HttpClientHints record
+        // Return the HttpClientHints record
         return new(userAgent, platform, platformVersion, architecture, model, fullVersionList, ua, mobile, headers);
     }
 }

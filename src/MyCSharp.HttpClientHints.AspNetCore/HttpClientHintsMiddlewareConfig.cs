@@ -12,12 +12,32 @@ public class HttpClientHintsMiddlewareConfig
     /// </summary>
     /// <value>The name of the response header as a <see cref="string"/>.</value>
     /// <remarks>These settings are set by <see cref="HttpClientHintsRegistration"/>. Do not set these values manually.</remarks>
-    public required string ResponseHeader { get; set; }
+    public required string ResponseHeader
+    {
+        get;
+        set
+        {
+            field = value;
+            HasResponseHeaders = string.IsNullOrEmpty(value) is false;
+        }
+    }
+
+    public bool HasResponseHeaders { get; internal set; }
 
     /// <summary>
     /// Gets or sets the lifetime of the client hints in seconds.
     /// </summary>
     /// <value>A <see cref="string"/> containing an <see cref="int"/> representing the lifetime in seconds, or <c>null</c> if unspecified.</value>
     /// <remarks>These settings are set by <see cref="HttpClientHintsRegistration"/>. Do not set these values manually.</remarks>
-    public string? LifeTime { get; set; }
+    public string? LifeTime
+    {
+        get;
+        set
+        {
+            field = value;
+            HasLifetime = string.IsNullOrEmpty(value) is false;
+        }
+    }
+
+    public bool HasLifetime { get; internal set; }
 }

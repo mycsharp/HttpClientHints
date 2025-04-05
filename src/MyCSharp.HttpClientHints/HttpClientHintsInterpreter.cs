@@ -21,12 +21,12 @@ public static class HttpClientHintsInterpreter
     /// </returns>
     public static bool? IsMobile(string? mobileHeaderValue)
     {
-        if (mobileHeaderValue is "?1")
+        if (string.Equals(mobileHeaderValue, "?1", StringComparison.Ordinal))
         {
             return true;
         }
 
-        if (mobileHeaderValue is "?0")
+        if (string.Equals(mobileHeaderValue, "?0", StringComparison.Ordinal))
         {
             return false;
         }

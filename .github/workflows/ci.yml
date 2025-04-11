@@ -15,7 +15,7 @@ jobs:
     uses: mycsharp/github-actions/.github/workflows/dotnet-nuget-build-multi-sdk.yml@main
     with:
       configuration: Release
-      dotnet-versions: |
+      dotnet-sdks: |
         8.x
         9.x
         10.x

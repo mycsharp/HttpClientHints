@@ -6,7 +6,7 @@
     },
     "publicReleaseRefSpec": [
         "^refs/heads/main$", // we release out of main
-        "^refs/heads/v\\d+\\.\\d+" // we release on tags like v1.0 or v2.0.0
+        "^refs/tags/v\\d+\\.\\d+" // we release on tags like v1.0 or v2.0.0 via GitHub Release
     ],
     "cloudBuild": {
         "buildNumber": {

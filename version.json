@@ -5,7 +5,8 @@
         "semVer": 1 // optional. Set to either 1 or 2 to control how the NuGet package version string is generated. Default is 1.
     },
     "publicReleaseRefSpec": [
-        "^refs/heads/main$" // we release out of main
+        "^refs/heads/main$", // we release out of main
+        "^refs/heads/v\\d+\\.\\d+" // we release on tags like v1.0 or v2.0.0
     ],
     "cloudBuild": {
         "buildNumber": {

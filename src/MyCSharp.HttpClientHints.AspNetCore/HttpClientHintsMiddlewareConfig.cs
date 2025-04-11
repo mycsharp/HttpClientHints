@@ -22,6 +22,10 @@ public class HttpClientHintsMiddlewareConfig
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the response headers have been configured.
+    /// </summary>
+    /// <value><c>true</c> if response headers are configured; otherwise, <c>false</c>.</value>
     public bool HasResponseHeaders { get; internal set; }
 
     /// <summary>
@@ -39,5 +43,9 @@ public class HttpClientHintsMiddlewareConfig
         }
     }
 
+    /// <summary>
+    /// Gets a value indicating whether the lifetime for client hints has been configured.
+    /// </summary>
+    /// <value><c>true</c> if lifetime is configured; otherwise, <c>false</c>.</value>
     public bool HasLifetime { get; internal set; }
 }

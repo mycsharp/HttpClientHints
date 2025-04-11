@@ -24,7 +24,7 @@ public static class HttpClientHintsRegistration
         string? lifeTime;
         if (httpClientHintsConfig.Lifetime is TimeSpan lifetime)
         {
-            lifeTime = lifetime.TotalSeconds.ToString("0.##"); // ignore decimals
+            lifeTime = lifetime.TotalSeconds.ToString("0.##", provider: null); // ignore decimals
         }
         else
         {

@@ -3,6 +3,14 @@ using Microsoft.Extensions.Options;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
+/// <summary>
+/// Middleware for processing HTTP Client Hints in ASP.NET Core requests.
+/// This middleware adds Client Hints headers to HTTP responses based on configuration.
+/// </summary>
+/// <remarks>
+/// This middleware adds the 'Accept-CH' header and optionally the 'Accept-CH-Lifetime' header
+/// to responses when configured appropriately.
+/// </remarks>
 public class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<HttpClientHintsMiddlewareConfig> options)
 {
     // Cache the options value and pre-compute conditions to avoid repeated checks
@@ -27,6 +35,6 @@ public class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<Htt
         }
 
         // Call the next middleware in the pipeline
-        await next(context);
+        await next(context).ConfigureAwait(false);
     }
 }

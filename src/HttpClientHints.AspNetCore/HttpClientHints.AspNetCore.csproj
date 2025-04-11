@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\MyCSharp.HttpClientHints\MyCSharp.HttpClientHints.csproj" />
+      <ProjectReference Include="..\HttpClientHints\HttpClientHints.csproj" />
     </ItemGroup>
 
 </Project>

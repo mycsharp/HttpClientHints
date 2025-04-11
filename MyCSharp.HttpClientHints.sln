@@ -22,17 +22,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{E23F6AE5-FF68-4E
 		version.json = version.json
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints", "src\MyCSharp.HttpClientHints\MyCSharp.HttpClientHints.csproj", "{3FC14B16-D6F7-4A28-8562-0BD7EDD6A3DC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpClientHints", "src\HttpClientHints\HttpClientHints.csproj", "{3FC14B16-D6F7-4A28-8562-0BD7EDD6A3DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints.AspNetCore", "src\MyCSharp.HttpClientHints.AspNetCore\MyCSharp.HttpClientHints.AspNetCore.csproj", "{8A434079-78A3-41C5-8319-3165B0D10E51}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpClientHints.AspNetCore", "src\HttpClientHints.AspNetCore\HttpClientHints.AspNetCore.csproj", "{8A434079-78A3-41C5-8319-3165B0D10E51}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints.AspNetCore.UnitTests", "tests\MyCSharp.HttpClientHints.AspNetCore.UnitTests\MyCSharp.HttpClientHints.AspNetCore.UnitTests.csproj", "{2BDA44E4-1E40-4B97-8903-B8C36C35B8C4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpClientHints.AspNetCore.UnitTests", "tests\HttpClientHints.AspNetCore.UnitTests\HttpClientHints.AspNetCore.UnitTests.csproj", "{2BDA44E4-1E40-4B97-8903-B8C36C35B8C4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints.UnitTests", "tests\MyCSharp.HttpClientHints.UnitTests\MyCSharp.HttpClientHints.UnitTests.csproj", "{E60AE9AF-09E5-4FE0-A005-5F697599E508}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpClientHints.UnitTests", "tests\HttpClientHints.UnitTests\HttpClientHints.UnitTests.csproj", "{E60AE9AF-09E5-4FE0-A005-5F697599E508}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{DD28B2F1-1CF8-4070-A997-83DE356EA88C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyCSharp.HttpClientHints.Samples.AspNetCoreMvc", "samples\MyCSharp.HttpClientHints.Samples.AspNetCoreMvc\MyCSharp.HttpClientHints.Samples.AspNetCoreMvc.csproj", "{2F2815DE-1730-4645-B6CF-13599BBA3B2C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpClientHints.Samples.AspNetCoreMvc", "samples\HttpClientHints.Samples.AspNetCoreMvc\HttpClientHints.Samples.AspNetCoreMvc.csproj", "{2F2815DE-1730-4645-B6CF-13599BBA3B2C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

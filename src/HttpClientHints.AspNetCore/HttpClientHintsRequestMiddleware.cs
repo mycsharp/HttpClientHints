@@ -1,18 +1,19 @@
-// Copyright © myCSharp.de - all rights reserved
-
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
 /// <summary>
-/// Middleware for adding HTTP Client Hints headers to the response.
-/// Initializes a new instance of the <see cref="HttpClientHintsRequestMiddleware"/> class.
+/// Middleware for processing HTTP Client Hints in ASP.NET Core requests.
+/// This middleware adds Client Hints headers to HTTP responses based on configuration.
 /// </summary>
-/// <param name="next">The next middleware in the request pipeline.</param>
-/// <param name="options">The options for configuring the middleware.</param>
+/// <remarks>
+/// This middleware adds the 'Accept-CH' header and optionally the 'Accept-CH-Lifetime' header
+/// to responses when configured appropriately.
+/// </remarks>
 public class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<HttpClientHintsMiddlewareConfig> options)
 {
+    // Cache the options value and pre-compute conditions to avoid repeated checks
     private readonly HttpClientHintsMiddlewareConfig _options = options.Value;
 
     /// <summary>
@@ -22,18 +23,18 @@ public class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<Htt
     /// <returns>A <see cref="Task"/> that represents the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context)
     {
-        // Add Client Hints headers to the response
-        if (string.IsNullOrEmpty(_options.ResponseHeader) is false)
+        if (_options.HasResponseHeaders)
         {
+            // Set headers directly without additional checks
             context.Response.Headers["Accept-CH"] = _options.ResponseHeader;
 
-            if (_options.LifeTime is not null)
+            if (_options.HasLifetime)
             {
                 context.Response.Headers["Accept-CH-Lifetime"] = _options.LifeTime;
             }
         }
 
         // Call the next middleware in the pipeline
-        await next(context);
+        await next(context).ConfigureAwait(false);
     }
 }

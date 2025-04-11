@@ -4,6 +4,8 @@ using Microsoft.Extensions.Primitives;
 
 namespace MyCSharp.HttpClientHints;
 
+#pragma warning disable MA0049 // Type name should not match containing namespace
+
 /// <summary>
 /// Represents HTTP Client Hints retrieved from the request headers.
 /// </summary>

@@ -22,14 +22,14 @@ public class HttpClientHintsRegistrationTests
         HttpClientHintsMiddlewareConfig options = serviceProvider.GetRequiredService<IOptions<HttpClientHintsMiddlewareConfig>>().Value;
 
         // Assert
-        Assert.Contains("User-Agent", options.ResponseHeader);
-        Assert.Contains("Sec-CH-UA", options.ResponseHeader);
-        Assert.Contains("Sec-CH-UA-Platform", options.ResponseHeader);
-        Assert.Contains("Sec-CH-UA-Platform-Version", options.ResponseHeader);
-        Assert.Contains("Sec-CH-UA-Arch", options.ResponseHeader);
-        Assert.Contains("Sec-CH-UA-Bitness", options.ResponseHeader);
-        Assert.Contains("Sec-CH-UA-Model", options.ResponseHeader);
-        Assert.Contains("Sec-CH-UA-Mobile", options.ResponseHeader);
+        Assert.Contains("User-Agent", options.ResponseHeader, StringComparison.Ordinal);
+        Assert.Contains("Sec-CH-UA", options.ResponseHeader, StringComparison.Ordinal);
+        Assert.Contains("Sec-CH-UA-Platform", options.ResponseHeader, StringComparison.Ordinal);
+        Assert.Contains("Sec-CH-UA-Platform-Version", options.ResponseHeader, StringComparison.Ordinal);
+        Assert.Contains("Sec-CH-UA-Arch", options.ResponseHeader, StringComparison.Ordinal);
+        Assert.Contains("Sec-CH-UA-Bitness", options.ResponseHeader, StringComparison.Ordinal);
+        Assert.Contains("Sec-CH-UA-Model", options.ResponseHeader, StringComparison.Ordinal);
+        Assert.Contains("Sec-CH-UA-Mobile", options.ResponseHeader, StringComparison.Ordinal);
         Assert.Null(options.LifeTime);
     }
 
@@ -61,8 +61,8 @@ public class HttpClientHintsRegistrationTests
         HttpClientHintsMiddlewareConfig options = serviceProvider.GetRequiredService<IOptions<HttpClientHintsMiddlewareConfig>>().Value;
 
         // Assert
-        Assert.DoesNotContain("Sec-CH-UA-Platform", options.ResponseHeader);
-        Assert.DoesNotContain("Sec-CH-UA-Platform-Version", options.ResponseHeader);
+        Assert.DoesNotContain("Sec-CH-UA-Platform", options.ResponseHeader, StringComparison.Ordinal);
+        Assert.DoesNotContain("Sec-CH-UA-Platform-Version", options.ResponseHeader, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class HttpClientHintsRegistrationTests
         HttpClientHintsMiddlewareConfig options = serviceProvider.GetRequiredService<IOptions<HttpClientHintsMiddlewareConfig>>().Value;
 
         // Assert
-        Assert.Contains("X-Custom-Header", options.ResponseHeader);
+        Assert.Contains("X-Custom-Header", options.ResponseHeader, StringComparison.Ordinal);
     }
 
     [Fact]

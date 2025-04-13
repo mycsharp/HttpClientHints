@@ -1,4 +1,4 @@
-// Copyright © myCSharp.de - all rights reserved
+// Copyright © https://myCSharp.de - all rights reserved
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -23,13 +23,13 @@ public static class HttpClientHintsHttpContextExtensions
     public static HttpClientHints GetClientHints(this HttpContext context)
     {
         // Check if client hints are already cached for this request
-        if (context.Items.TryGetValue(ClientHintsCacheKey, out var cached) && cached is HttpClientHints hints)
+        if (context.Items.TryGetValue(ClientHintsCacheKey, out object? cached) && cached is HttpClientHints hints)
         {
             return hints;
         }
-        
+
         // Create and cache new client hints
-        var newHints = context.Request.Headers.GetClientHints();
+        HttpClientHints newHints = context.Request.Headers.GetClientHints();
         context.Items[ClientHintsCacheKey] = newHints;
         return newHints;
     }
@@ -44,14 +44,14 @@ public static class HttpClientHintsHttpContextExtensions
         // User Agent
         headers.TryGetValue("User-Agent", out StringValues userAgentValues);
         string? userAgent = userAgentValues.Count > 0 ? userAgentValues[0] : null;
-        
+
         headers.TryGetValue("Sec-CH-UA", out StringValues uaValues);
         string? ua = uaValues.Count > 0 ? uaValues[0] : null;
 
         // Platform
         headers.TryGetValue("Sec-CH-UA-Platform", out StringValues platformValues);
         string? platform = platformValues.Count > 0 ? platformValues[0] : null;
-        
+
         headers.TryGetValue("Sec-CH-UA-Platform-Version", out StringValues platformVersionValues);
         string? platformVersion = platformVersionValues.Count > 0 ? platformVersionValues[0] : null;
 
@@ -66,7 +66,7 @@ public static class HttpClientHintsHttpContextExtensions
         // Device
         headers.TryGetValue("Sec-CH-UA-Model", out StringValues modelValues);
         string? model = modelValues.Count > 0 ? modelValues[0] : null;
-        
+
         headers.TryGetValue("Sec-CH-UA-Mobile", out StringValues mobileValues);
         bool? mobile = HttpClientHintsInterpreter.IsMobile(mobileValues.Count > 0 ? mobileValues[0] : null);
 

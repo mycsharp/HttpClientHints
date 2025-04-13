@@ -1,3 +1,5 @@
+// Copyright © https://myCSharp.de - all rights reserved
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 

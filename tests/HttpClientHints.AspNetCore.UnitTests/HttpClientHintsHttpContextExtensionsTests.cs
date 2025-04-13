@@ -1,4 +1,4 @@
-// Copyright © myCSharp.de - all rights reserved
+// Copyright © https://myCSharp.de - all rights reserved
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -12,7 +12,7 @@ public class HttpClientHintsHttpContextExtensionsTests
     public void GetClientHints_ReturnsCorrectValues_WhenHeadersArePresent()
     {
         // Arrange
-        HeaderDictionary headers = new HeaderDictionary
+        HeaderDictionary headers = new()
         {
             { "User-Agent", new StringValues("TestUserAgent") },
             { "Sec-CH-UA", new StringValues("TestUA") },
@@ -65,7 +65,7 @@ public class HttpClientHintsHttpContextExtensionsTests
     public void GetClientHints_ReturnsCorrectMobileValue_WhenMobileHeaderIsTrue()
     {
         // Arrange
-        HeaderDictionary headers = new HeaderDictionary
+        HeaderDictionary headers = new()
         {
             { "Sec-CH-UA-Mobile", new StringValues("?1") } // true
         };
@@ -81,7 +81,7 @@ public class HttpClientHintsHttpContextExtensionsTests
     public void GetClientHints_ReturnsCorrectMobileValue_WhenMobileHeaderIsFalse()
     {
         // Arrange
-        HeaderDictionary headers = new HeaderDictionary
+        HeaderDictionary headers = new()
         {
             { "Sec-CH-UA-Mobile", new StringValues("?0") } // false
         };

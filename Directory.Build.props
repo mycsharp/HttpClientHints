@@ -1,125 +1,134 @@
 <Project>
-    <PropertyGroup Label="Project">
-        <Product>MyCSharp.HttpClientHints</Product>
-        <Authors>MyCSharp.de, Benjamin Abt, Günther Foidl and Contributors</Authors>
-        <Company>MyCSharp.de</Company>
-    </PropertyGroup>
+  <PropertyGroup Label="Project">
+    <Product>MyCSharp.HttpClientHints</Product>
+    <Authors>MyCSharp.de, Benjamin Abt, Günther Foidl and Contributors</Authors>
+    <Company>MyCSharp.de</Company>
+  </PropertyGroup>
 
-    <PropertyGroup Label="Vars">
-        <IsWindows Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</IsWindows>
-        <IsOSX Condition="$([MSBuild]::IsOSPlatform('OSX'))">true</IsOSX>
-        <IsLinux Condition="$([MSBuild]::IsOSPlatform('Linux'))">true</IsLinux>
+  <PropertyGroup Label="Vars">
+    <IsWindows Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</IsWindows>
+    <IsOSX Condition="$([MSBuild]::IsOSPlatform('OSX'))">true</IsOSX>
+    <IsLinux Condition="$([MSBuild]::IsOSPlatform('Linux'))">true</IsLinux>
 
-        <IsTestProject>$(MSBuildProjectName.EndsWith('Tests'))</IsTestProject>
-        <IsUnitTestProject>$(MSBuildProjectName.EndsWith('UnitTests'))</IsUnitTestProject>
-        <IsIntegrationTestProject>$(MSBuildProjectName.EndsWith('IntegrationTests'))</IsIntegrationTestProject>
-        <IsBenchmarkProject>$(MsBuildProjectName.EndsWith('Benchmarks'))</IsBenchmarkProject>
-    </PropertyGroup>
+    <IsTestProject>$(MSBuildProjectName.EndsWith('Tests'))</IsTestProject>
+    <IsUnitTestProject>$(MSBuildProjectName.EndsWith('UnitTests'))</IsUnitTestProject>
+    <IsIntegrationTestProject>$(MSBuildProjectName.EndsWith('IntegrationTests'))</IsIntegrationTestProject>
+    <IsBenchmarkProject>$(MsBuildProjectName.EndsWith('Benchmarks'))</IsBenchmarkProject>
+  </PropertyGroup>
 
-    <PropertyGroup Label="Assembly">
-        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-        <RootNamespace>MyCSharp.$(MSBuildProjectName)</RootNamespace>
-        <AssemblyName>MyCSharp.$(MSBuildProjectName)</AssemblyName>
-    </PropertyGroup>
+  <PropertyGroup Label="Assembly">
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>MyCSharp.$(MSBuildProjectName)</RootNamespace>
+    <AssemblyName>MyCSharp.$(MSBuildProjectName)</AssemblyName>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <SignAssembly>true</SignAssembly>
-        <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MyCSharp.HttpClientHints.snk</AssemblyOriginatorKeyFile>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MyCSharp.HttpClientHints.snk</AssemblyOriginatorKeyFile>
 
-        <PublicKey>
-            002400000480000094000000060200000024000052534131000400000100010049809bc922cd71
-            a1539dd60826caafead07781420334254bdc0c276165f7313f241833f972437ee215684b4e10de
-            49501812fa7fcdb18baead466e32978ca3e45ff7c82616283718d6ab2b729ab40e656fb856a845
-            cede9fdd2b449fc34a99edf258524ce5e1f958a9598efba2953e34e179b13c086500f9b72ca08a
-            065effe0
-        </PublicKey>
-    </PropertyGroup>
+    <PublicKey>
+      002400000480000094000000060200000024000052534131000400000100010049809bc922cd71
+      a1539dd60826caafead07781420334254bdc0c276165f7313f241833f972437ee215684b4e10de
+      49501812fa7fcdb18baead466e32978ca3e45ff7c82616283718d6ab2b729ab40e656fb856a845
+      cede9fdd2b449fc34a99edf258524ce5e1f958a9598efba2953e34e179b13c086500f9b72ca08a
+      065effe0
+    </PublicKey>
+  </PropertyGroup>
 
-    <PropertyGroup Label="Compiler">
-        <LangVersion>preview</LangVersion>
-        <DebugType>embedded</DebugType>
-        <Nullable>enable</Nullable>
-        <DefaultLanguage>en-US</DefaultLanguage>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    </PropertyGroup>
+  <PropertyGroup Label="Compiler">
+    <LangVersion>preview</LangVersion>
+    <DebugType>embedded</DebugType>
+    <Nullable>enable</Nullable>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
 
-    <PropertyGroup Label="Package">
-        <IsPackable>false</IsPackable>
-        <NoPackageAnalysis>true</NoPackageAnalysis>
-        <MinClientVersion>2.12</MinClientVersion>
-        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  <PropertyGroup Label="Package">
+    <IsPackable>false</IsPackable>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <MinClientVersion>2.12</MinClientVersion>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
 
-        <Description>HTTP Client Hints for .NET</Description>
-        <PackageProjectUrl>https://github.com/mycsharp/HttpClientHints</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/mycsharp/HttpClientHints</RepositoryUrl>
-        <PackageTags>UserAgent, User Agent, Client Hints, Browser, Client, Detector, Detection, Console, ASP, Desktop, Mobile</PackageTags>
-    </PropertyGroup>
+    <Description>HTTP Client Hints for .NET</Description>
+    <PackageProjectUrl>https://github.com/mycsharp/HttpClientHints</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mycsharp/HttpClientHints</RepositoryUrl>
+    <PackageTags>UserAgent, User Agent, Client Hints, Browser, Client, Detector, Detection, Console, ASP, Desktop, Mobile</PackageTags>
+  </PropertyGroup>
 
-    <PropertyGroup Condition="'$(IsTestProject)' != 'true' AND '$(IsBenchmarkProject)' != 'true'">
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    </PropertyGroup>
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true' AND '$(IsBenchmarkProject)' != 'true'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
 
-    <PropertyGroup Label="Visual Studio">
-        <!-- https://devblogs.microsoft.com/visualstudio/visual-studio-2022-17-5-performance-enhancements/ -->
-        <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
-    </PropertyGroup>
+  <PropertyGroup Label="Visual Studio">
+    <!-- https://devblogs.microsoft.com/visualstudio/visual-studio-2022-17-5-performance-enhancements/ -->
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+  </PropertyGroup>
 
-    <PropertyGroup Label="NuGet Audit">
-        <NuGetAudit>true</NuGetAudit>
-        <NuGetAuditMode>all</NuGetAuditMode>
-        <NuGetAuditLevel>low</NuGetAuditLevel>
-    </PropertyGroup>
+  <PropertyGroup Label="NuGet Audit">
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+  </PropertyGroup>
 
-    <ItemGroup Label="Default Test Dependencies" Condition="'$(IsTestProject)' == 'true'">
-        <PackageReference Include="Microsoft.NET.Test.Sdk" />
-        <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
-        <PackageReference Include="NSubstitute" />
-        <PackageReference Include="NSubstitute.Analyzers.CSharp">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="xunit.v3" />
-        <PackageReference Include="xunit.v3.extensibility.core"/>
-        <PackageReference Include="xunit.v3.assert" />
-        <PackageReference Include="xunit.runner.console">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="xunit.runner.visualstudio">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
+  <ItemGroup Label="Default Test Dependencies" Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="NSubstitute.Analyzers.CSharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.v3.extensibility.core"/>
+    <PackageReference Include="xunit.v3.assert" />
+    <PackageReference Include="xunit.runner.console">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
-    <ItemGroup Label="Default Analyzers">
-        <PackageReference Include="Roslynator.Analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Roslynator.Formatting.Analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Roslynator.CodeAnalysis.Analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
-        <PackageReference Include="Microsoft.CodeAnalysis.Common" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-        <PackageReference Include="Meziantou.Analyzer">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
+  <ItemGroup Label="Default Analyzers">
+    <PackageReference Include="Roslynator.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Roslynator.Formatting.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Roslynator.CodeAnalysis.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.Common">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Meziantou.Analyzer">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
-    <!-- Block Projects with Privacy/Security/License Concerns -->
-    <Target Name="CheckBlockedPackages" AfterTargets="ResolvePackageDependenciesForBuild">
-        <Error Code="420" Text="Blocked package dependency detected: %(PackageDependencies.Identity)"
-             Condition="'%(PackageDependencies.Identity)' == 'Devlooped.SponsorLink'" />
-        <Error Code="420" Text="Blocked package dependency detected: %(PackageDependencies.Identity)"
-             Condition="'%(PackageDependencies.Identity)' == 'FluentAssertions'" />
-    </Target>
+  <!-- Block Projects with Privacy/Security/License Concerns -->
+  <Target Name="CheckBlockedPackages" AfterTargets="ResolvePackageDependenciesForBuild">
+    <Error Code="420" Text="Blocked package dependency detected: %(PackageDependencies.Identity)"
+         Condition="'%(PackageDependencies.Identity)' == 'Devlooped.SponsorLink'" />
+    <Error Code="420" Text="Blocked package dependency detected: %(PackageDependencies.Identity)"
+         Condition="'%(PackageDependencies.Identity)' == 'FluentAssertions'" />
+  </Target>
 
 </Project>

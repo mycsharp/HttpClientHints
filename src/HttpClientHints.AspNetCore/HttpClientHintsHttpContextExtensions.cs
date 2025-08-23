@@ -1,7 +1,6 @@
 // Copyright © https://myCSharp.de - all rights reserved
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Primitives;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
@@ -54,7 +53,7 @@ public static class HttpClientHintsHttpContextExtensions
     public static HttpClientHints GetClientHints(this IHeaderDictionary headers)
     {
         // Use the non-allocating view to gather values and build a snapshot.
-    HttpClientHintsView view = new(headers);
-    return view.BuildSnapshot();
+        HttpClientHintsView view = new(headers);
+        return view.BuildSnapshot();
     }
 }

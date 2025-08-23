@@ -2,6 +2,8 @@
 
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
+using BenchmarkDotNet.Order;
+using BenchmarkDotNet.Configs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using MyCSharp.HttpClientHints.AspNetCore;
@@ -15,6 +17,8 @@ namespace HttpClientHints.Benchmarks;
 [SimpleJob(RuntimeMoniker.Net80)]
 [SimpleJob(RuntimeMoniker.Net90)]
 [SimpleJob(RuntimeMoniker.Net10_0)]
+[Orderer(SummaryOrderPolicy.Method, MethodOrderPolicy.Declared)]
+[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByMethod)]
 public class HttpClientHintBenchmarks
 {
     private HeaderDictionary _headers = null!;

@@ -35,42 +35,26 @@ public static class HttpClientHintsHttpContextExtensions
     }
 
     /// <summary>
+    /// Returns a zero-allocation view over the request headers for accessing Client Hints lazily.
+    /// </summary>
+    public static HttpClientHintsView GetClientHintsView(this HttpContext context)
+        => new(context.Request.Headers);
+
+    /// <summary>
+    /// Returns a zero-allocation view over the provided headers for accessing Client Hints lazily.
+    /// </summary>
+    public static HttpClientHintsView GetClientHintsView(this IHeaderDictionary headers)
+        => new(headers);
+
+    /// <summary>
     /// Retrieves the <see cref="HttpClientHints"/> from the specified header dictionary.
     /// </summary>
     /// <param name="headers">The header dictionary containing the Client Hints headers.</param>
     /// <returns>An instance of <see cref="HttpClientHints"/> populated with the relevant header values.</returns>
     public static HttpClientHints GetClientHints(this IHeaderDictionary headers)
     {
-        // User Agent
-        headers.TryGetValue("User-Agent", out StringValues userAgentValues);
-        string? userAgent = userAgentValues.Count > 0 ? userAgentValues[0] : null;
-
-        headers.TryGetValue("Sec-CH-UA", out StringValues uaValues);
-        string? ua = uaValues.Count > 0 ? uaValues[0] : null;
-
-        // Platform
-        headers.TryGetValue("Sec-CH-UA-Platform", out StringValues platformValues);
-        string? platform = platformValues.Count > 0 ? platformValues[0] : null;
-
-        headers.TryGetValue("Sec-CH-UA-Platform-Version", out StringValues platformVersionValues);
-        string? platformVersion = platformVersionValues.Count > 0 ? platformVersionValues[0] : null;
-
-        // Architecture
-        headers.TryGetValue("Sec-CH-UA-Arch", out StringValues architectureValues);
-        string? architecture = architectureValues.Count > 0 ? architectureValues[0] : null;
-
-        // Other
-        headers.TryGetValue("Sec-CH-UA-Full-Version-List", out StringValues fullVersionListValues);
-        string? fullVersionList = fullVersionListValues.Count > 0 ? fullVersionListValues[0] : null;
-
-        // Device
-        headers.TryGetValue("Sec-CH-UA-Model", out StringValues modelValues);
-        string? model = modelValues.Count > 0 ? modelValues[0] : null;
-
-        headers.TryGetValue("Sec-CH-UA-Mobile", out StringValues mobileValues);
-        bool? mobile = HttpClientHintsInterpreter.IsMobile(mobileValues.Count > 0 ? mobileValues[0] : null);
-
-        // Return the HttpClientHints record
-        return new(userAgent, platform, platformVersion, architecture, model, fullVersionList, ua, mobile, headers);
+        // Use the non-allocating view to gather values and build a snapshot.
+    HttpClientHintsView view = new(headers);
+    return view.BuildSnapshot();
     }
 }

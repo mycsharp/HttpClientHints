@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{E23F6AE5-FF68-4E
 		Directory.Build.props = Directory.Build.props
 		Directory.Packages.props = Directory.Packages.props
 		global.json = global.json
+		Justfile = Justfile
 		LICENSE = LICENSE
 		NuGet.config = NuGet.config
 		README.md = README.md
@@ -33,6 +34,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{DD28B2F1-1CF8-4070-A997-83DE356EA88C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpClientHints.Samples.AspNetCoreMvc", "samples\HttpClientHints.Samples.AspNetCoreMvc\HttpClientHints.Samples.AspNetCoreMvc.csproj", "{2F2815DE-1730-4645-B6CF-13599BBA3B2C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "perf", "perf", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpClientHints.Benchmarks", "perf\HttpClientHints.Benchmarks\HttpClientHints.Benchmarks.csproj", "{F4088F7A-51EC-4111-BBDB-CA36596B3F77}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -60,6 +65,10 @@ Global
 		{2F2815DE-1730-4645-B6CF-13599BBA3B2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F2815DE-1730-4645-B6CF-13599BBA3B2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F2815DE-1730-4645-B6CF-13599BBA3B2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4088F7A-51EC-4111-BBDB-CA36596B3F77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4088F7A-51EC-4111-BBDB-CA36596B3F77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4088F7A-51EC-4111-BBDB-CA36596B3F77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4088F7A-51EC-4111-BBDB-CA36596B3F77}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -70,5 +79,9 @@ Global
 		{2BDA44E4-1E40-4B97-8903-B8C36C35B8C4} = {3CF449E7-2707-44A2-BACC-6F9A5C8DBA63}
 		{E60AE9AF-09E5-4FE0-A005-5F697599E508} = {3CF449E7-2707-44A2-BACC-6F9A5C8DBA63}
 		{2F2815DE-1730-4645-B6CF-13599BBA3B2C} = {DD28B2F1-1CF8-4070-A997-83DE356EA88C}
+		{F4088F7A-51EC-4111-BBDB-CA36596B3F77} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B0EDDFE8-3921-4DCE-8524-12765744AE12}
 	EndGlobalSection
 EndGlobal

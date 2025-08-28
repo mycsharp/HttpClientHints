@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup Label="Project">
     <Product>MyCSharp.HttpClientHints</Product>
-    <Authors>MyCSharp.de, Benjamin Abt, Günther Foidl and Contributors</Authors>
+    <Authors>MyCSharp, BenjaminAbt, gfoidl</Authors>
     <Company>MyCSharp.de</Company>
   </PropertyGroup>
 

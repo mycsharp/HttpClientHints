@@ -85,32 +85,32 @@ clientHints.Headers.TryGetValue("Sec-CH-UA-Bitness", out StringValues bitness);
 ## Benchmark
 
 ```shell
-BenchmarkDotNet v0.15.2, Windows 10 (10.0.19045.6216/22H2/2022Update)
+BenchmarkDotNet v0.15.2, Windows 10 (10.0.19045.6691/22H2/2022Update)
 AMD Ryzen 9 9950X 4.30GHz, 1 CPU, 32 logical and 16 physical cores
-.NET SDK 10.0.100-preview.7.25380.108
-  [Host]    : .NET 10.0.0 (10.0.25.38108), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
-  .NET 10.0 : .NET 10.0.0 (10.0.25.38108), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
-  .NET 8.0  : .NET 8.0.19 (8.0.1925.36514), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
-  .NET 9.0  : .NET 9.0.8 (9.0.825.36511), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+.NET SDK 10.0.101
+  [Host]    : .NET 10.0.1 (10.0.125.57005), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  .NET 10.0 : .NET 10.0.1 (10.0.125.57005), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  .NET 8.0  : .NET 8.0.22 (8.0.2225.52707), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  .NET 9.0  : .NET 9.0.11 (9.0.1125.51716), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 
 | Method                                                 | Job       | Runtime   | Mean      | Error    | StdDev   | Gen0   | Allocated |
 |------------------------------------------------------- |---------- |---------- |----------:|---------:|---------:|-------:|----------:|
-| 'View: read few properties (no alloc)'                 | .NET 8.0  | .NET 8.0  |  31.26 ns | 0.403 ns | 0.377 ns |      - |         - |
-| 'View: read few properties (no alloc)'                 | .NET 9.0  | .NET 9.0  |  34.50 ns | 0.328 ns | 0.307 ns |      - |         - |
-| 'View: read few properties (no alloc)'                 | .NET 10.0 | .NET 10.0 |  21.71 ns | 0.397 ns | 0.371 ns |      - |         - |
+| 'View: read few properties (no alloc)'                 | .NET 10.0 | .NET 10.0 |  21.82 ns | 0.040 ns | 0.035 ns |      - |         - |
+| 'View: read few properties (no alloc)'                 | .NET 8.0  | .NET 8.0  |  29.90 ns | 0.232 ns | 0.217 ns |      - |         - |
+| 'View: read few properties (no alloc)'                 | .NET 9.0  | .NET 9.0  |  31.98 ns | 0.194 ns | 0.162 ns |      - |         - |
 |                                                        |           |           |           |          |          |        |           |
-| 'View: BuildSnapshot (alloc 1)'                        | .NET 8.0  | .NET 8.0  |  70.83 ns | 1.058 ns | 0.884 ns | 0.0052 |      88 B |
-| 'View: BuildSnapshot (alloc 1)'                        | .NET 9.0  | .NET 9.0  |  67.35 ns | 0.462 ns | 0.409 ns |      - |         - |
-| 'View: BuildSnapshot (alloc 1)'                        | .NET 10.0 | .NET 10.0 |  44.59 ns | 0.599 ns | 0.561 ns |      - |         - |
+| 'View: BuildSnapshot (alloc 1)'                        | .NET 10.0 | .NET 10.0 |  43.65 ns | 0.155 ns | 0.129 ns |      - |         - |
+| 'View: BuildSnapshot (alloc 1)'                        | .NET 8.0  | .NET 8.0  |  68.04 ns | 0.436 ns | 0.340 ns | 0.0052 |      88 B |
+| 'View: BuildSnapshot (alloc 1)'                        | .NET 9.0  | .NET 9.0  |  68.71 ns | 0.526 ns | 0.492 ns |      - |         - |
 |                                                        |           |           |           |          |          |        |           |
-| 'Extension: GetClientHints(headers) (alloc 1)'         | .NET 8.0  | .NET 8.0  |  70.32 ns | 0.872 ns | 0.816 ns | 0.0052 |      88 B |
-| 'Extension: GetClientHints(headers) (alloc 1)'         | .NET 9.0  | .NET 9.0  |  67.24 ns | 0.506 ns | 0.473 ns |      - |         - |
-| 'Extension: GetClientHints(headers) (alloc 1)'         | .NET 10.0 | .NET 10.0 |  46.50 ns | 0.254 ns | 0.212 ns |      - |         - |
+| 'Extension: GetClientHints(headers) (alloc 1)'         | .NET 10.0 | .NET 10.0 |  44.40 ns | 0.083 ns | 0.078 ns |      - |         - |
+| 'Extension: GetClientHints(headers) (alloc 1)'         | .NET 8.0  | .NET 8.0  |  68.94 ns | 0.752 ns | 0.628 ns | 0.0052 |      88 B |
+| 'Extension: GetClientHints(headers) (alloc 1)'         | .NET 9.0  | .NET 9.0  |  65.91 ns | 0.459 ns | 0.384 ns |      - |         - |
 |                                                        |           |           |           |          |          |        |           |
-| 'Extension: GetClientHints(context) (alloc 1, cached)' | .NET 8.0  | .NET 8.0  | 111.04 ns | 0.767 ns | 0.718 ns | 0.0052 |      88 B |
-| 'Extension: GetClientHints(context) (alloc 1, cached)' | .NET 9.0  | .NET 9.0  | 114.79 ns | 2.304 ns | 2.155 ns | 0.0052 |      88 B |
-| 'Extension: GetClientHints(context) (alloc 1, cached)' | .NET 10.0 | .NET 10.0 |  98.26 ns | 1.429 ns | 1.267 ns | 0.0052 |      88 B |
+| 'Extension: GetClientHints(context) (alloc 1, cached)' | .NET 10.0 | .NET 10.0 |  91.15 ns | 0.708 ns | 0.662 ns | 0.0052 |      88 B |
+| 'Extension: GetClientHints(context) (alloc 1, cached)' | .NET 8.0  | .NET 8.0  | 109.87 ns | 0.433 ns | 0.384 ns | 0.0052 |      88 B |
+| 'Extension: GetClientHints(context) (alloc 1, cached)' | .NET 9.0  | .NET 9.0  | 112.87 ns | 1.234 ns | 1.154 ns | 0.0052 |      88 B 
 ```
 
 ## Samples

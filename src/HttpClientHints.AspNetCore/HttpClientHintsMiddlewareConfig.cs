@@ -7,6 +7,9 @@ namespace MyCSharp.HttpClientHints.AspNetCore;
 /// </summary>
 public class HttpClientHintsMiddlewareConfig
 {
+    private string _responseHeader = string.Empty;
+    private string? _lifeTime;
+
     /// <summary>
     /// Gets or sets the response header used to convey HTTP client hints.
     /// </summary>
@@ -14,11 +17,11 @@ public class HttpClientHintsMiddlewareConfig
     /// <remarks>These settings are set by <see cref="HttpClientHintsRegistration"/>. Do not set these values manually.</remarks>
     public required string ResponseHeader
     {
-        get;
+        get => _responseHeader;
         set
         {
-            field = value;
-            HasResponseHeaders = string.IsNullOrEmpty(value) is false;
+            _responseHeader = value;
+            HasResponseHeaders = !string.IsNullOrEmpty(value);
         }
     }
 
@@ -26,7 +29,7 @@ public class HttpClientHintsMiddlewareConfig
     /// Gets a value indicating whether the response headers have been configured.
     /// </summary>
     /// <value><c>true</c> if response headers are configured; otherwise, <c>false</c>.</value>
-    public bool HasResponseHeaders { get; internal set; }
+    public bool HasResponseHeaders { get; private set; }
 
     /// <summary>
     /// Gets or sets the lifetime of the client hints in seconds.
@@ -35,11 +38,11 @@ public class HttpClientHintsMiddlewareConfig
     /// <remarks>These settings are set by <see cref="HttpClientHintsRegistration"/>. Do not set these values manually.</remarks>
     public string? LifeTime
     {
-        get;
+        get => _lifeTime;
         set
         {
-            field = value;
-            HasLifetime = string.IsNullOrEmpty(value) is false;
+            _lifeTime = value;
+            HasLifetime = !string.IsNullOrEmpty(value);
         }
     }
 
@@ -47,5 +50,5 @@ public class HttpClientHintsMiddlewareConfig
     /// Gets a value indicating whether the lifetime for client hints has been configured.
     /// </summary>
     /// <value><c>true</c> if lifetime is configured; otherwise, <c>false</c>.</value>
-    public bool HasLifetime { get; internal set; }
+    public bool HasLifetime { get; private set; }
 }

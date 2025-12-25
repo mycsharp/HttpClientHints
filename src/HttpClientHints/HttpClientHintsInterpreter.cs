@@ -20,17 +20,10 @@ public static class HttpClientHintsInterpreter
     /// </list>
     /// </returns>
     public static bool? IsMobile(string? mobileHeaderValue)
-    {
-        if (string.Equals(mobileHeaderValue, "?1", StringComparison.Ordinal))
+        => mobileHeaderValue switch
         {
-            return true;
-        }
-
-        if (string.Equals(mobileHeaderValue, "?0", StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        return null;
-    }
+            "?1" => true,
+            "?0" => false,
+            _ => null
+        };
 }

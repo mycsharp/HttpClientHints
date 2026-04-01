@@ -30,3 +30,10 @@ jobs:
     with:
       dotnet-version: '10.0.x'
       upload-test-results: true
+
+  validate-dotnet-11:
+    name: Test on .NET 11.0
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      dotnet-version: '11.0.x'
+      upload-test-results: true

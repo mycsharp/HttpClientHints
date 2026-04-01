@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Assembly">
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
     <RootNamespace>MyCSharp.$(MSBuildProjectName)</RootNamespace>
     <AssemblyName>MyCSharp.$(MSBuildProjectName)</AssemblyName>
   </PropertyGroup>
@@ -53,7 +53,18 @@
     <Description>HTTP Client Hints for .NET</Description>
     <PackageProjectUrl>https://github.com/mycsharp/HttpClientHints</PackageProjectUrl>
     <RepositoryUrl>https://github.com/mycsharp/HttpClientHints</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>UserAgent, User Agent, Client Hints, Browser, Client, Detector, Detection, Console, ASP, Desktop, Mobile</PackageTags>
+    <PackageIcon>mycsharpde-logo-nuget.png</PackageIcon>
+  </PropertyGroup>
+
+  <!-- Ensure the repository root res/mycsharpde-logo-nuget.png is packed into NuGet packages -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)res\mycsharpde-logo-nuget.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(IsBenchmarkProject)' == 'true'">
+    <SignAssembly>false</SignAssembly>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsTestProject)' != 'true' AND '$(IsBenchmarkProject)' != 'true'">

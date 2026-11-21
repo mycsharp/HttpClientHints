@@ -15,7 +15,7 @@ builder.Services.AddHttpClientHints(options =>
       options.Architecture = true;
       options.Device = true;
       options.Mobile = true;
-      options.Additional = ["Sec-CH-UA-Bitness"];
+      options.Additional = ["Sec-CH-UA-Full-Version-List"];
       options.Lifetime = TimeSpan.FromDays(31);
   });
 

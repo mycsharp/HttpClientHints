@@ -4,15 +4,15 @@ Reading HTTP Client Hints with .NET
 
 ## NuGet
 
-| NuGet |
-|-|
-| [![MyCSharp.HttpClientHints](https://img.shields.io/nuget/v/MyCSharp.HttpClientHints.svg?logo=nuget&label=MyCSharp.HttpClientHints)](https://www.nuget.org/packages/MyCSharp.HttpClientHints) |
+| NuGet | Install |
+|-|-|
+| [![MyCSharp.HttpClientHints](https://img.shields.io/nuget/v/MyCSharp.HttpClientHints.svg?logo=nuget&label=MyCSharp.HttpClientHints)](https://www.nuget.org/packages/MyCSharp.HttpClientHints) | `dotnet add package MyCSharp.HttpClientHints` |
 | [![MyCSharp.HttpClientHints.AspNetCore](https://img.shields.io/nuget/v/MyCSharp.HttpClientHints.AspNetCore.svg?logo=nuget&label=MyCSharp.HttpClientHints.AspNetCore)](https://www.nuget.org/packages/MyCSharp.HttpClientHints.AspNetCore) | `dotnet add package MyCSharp.HttpClientHints.AspNetCore` |
 
 
 ## Client Hints
 
-HTTP client hints are intended to completely replace the user agents (see [mycsharp/HttpUserAgentParser](https://github.com/mycsharp/HttpUserAgentParser)) of the browser in the long term and pay more attention to data protection. We are currently in a phase in which client hints are generally regarded as expiremental and therefore do not represent a complete alternative.
+HTTP client hints are intended to completely replace the user agents (see [mycsharp/HttpUserAgentParser](https://github.com/mycsharp/HttpUserAgentParser)) of the browser in the long term and pay more attention to data protection. We are currently in a phase in which client hints are generally regarded as experimental and therefore do not represent a complete alternative.
 
 Furthermore, in contrast to the User-Agent header, not all client hints are provided automatically, but only on request after the first response from the client.
 
@@ -55,6 +55,21 @@ using MyCSharp.HttpClientHints.AspNetCore;
 HttpClientHints clientHints = HttpClientHintsHttpContextExtensions.GetClientHints(httpContext);
 ```
 
+There are two ways to read the Client Hints of a request:
+
+| API | Returns | Behavior |
+| --- | --- | --- |
+| `httpContext.GetClientHints()` | `HttpClientHints` record | Reads the headers on the first call and returns the same instance for every further call during the request. |
+| `httpContext.GetClientHintsView()` | `HttpClientHintsView` struct | Reads the current request headers on every property access. Creating the view and reading header values do not allocate. |
+
+`GetClientHints()` and `GetClientHintsView()` are also available on `IHeaderDictionary`. `GetClientHints()` on headers builds a new record on every call.
+
+```csharp
+HttpClientHints clientHints = httpContext.GetClientHints();
+HttpClientHintsView view = httpContext.GetClientHintsView();
+bool? isMobile = view.Mobile;
+```
+
 Since potentially all client hints are optional, all properties are potentially nullable, which means that the client has not provided this data.
 
 ## Decoded values
@@ -82,7 +97,17 @@ An absent header yields `null`. A quoted empty value such as `Sec-CH-UA-Model: "
 
 ## Customization
 
-The `Additional` property can be used to define your own headers that are to be requested.
+Each option requests these headers with `Accept-CH`:
+
+| Option | Requested headers |
+| --- | --- |
+| `UserAgent` | `User-Agent`, `Sec-CH-UA` |
+| `Platform` | `Sec-CH-UA-Platform`, `Sec-CH-UA-Platform-Version` |
+| `Architecture` | `Sec-CH-UA-Arch`, `Sec-CH-UA-Bitness` |
+| `Device` | `Sec-CH-UA-Model` |
+| `Mobile` | `Sec-CH-UA-Mobile` |
+
+The `Additional` property can be used to request further headers. For example, `FullVersionList` stays `null` unless you request `Sec-CH-UA-Full-Version-List`.
 
 ```csharp
 // Add Http Client Hint Options
@@ -93,16 +118,22 @@ builder.Services.AddHttpClientHints(options =>
       options.Architecture = true;
       options.Device = true;
       options.Mobile = true;
-      options.Additional = ["Sec-CH-UA-Bitness"];
+      options.Additional = ["Sec-CH-UA-Full-Version-List"];
       options.Lifetime = TimeSpan.FromDays(31);
   });
 ```
 
-The `HttpClientHints` object has a reference to all headers received, making it very easy to read them out. Optionally, you can also inherit from the `HttpClientHints` class itself to simplify access.
+The `HttpClientHints` object has a reference to all headers received, making it very easy to read them out. This includes headers without a property, such as `Sec-CH-UA-Bitness`. Optionally, you can also inherit from the `HttpClientHints` class itself to simplify access.
 
 ```csharp
 HttpClientHints clientHints = HttpClientHintsHttpContextExtensions.GetClientHints(httpContext);
 clientHints.Headers.TryGetValue("Sec-CH-UA-Bitness", out StringValues bitness);
+```
+
+Like the platform, `Sec-CH-UA-Bitness` is sent as a quoted string such as `"64"`. `HttpClientHintsInterpreter.DecodeStructuredString` removes the quotes from any header value of this type.
+
+```csharp
+string? decodedBitness = HttpClientHintsInterpreter.DecodeStructuredString(bitness); // 64
 ```
 
 ## Build and test

@@ -1,55 +1,70 @@
+@using Microsoft.Extensions.Primitives
+@using MyCSharp.HttpClientHints
+@using MyCSharp.HttpClientHints.AspNetCore
 @{
     ViewData["Title"] = "Home Page";
 
-    var httpContext = this.Context;
-    var clientHints = MyCSharp.HttpClientHints.AspNetCore.HttpClientHintsHttpContextExtensions.GetClientHints(httpContext.Request.Headers);
+    HttpClientHints clientHints = Context.GetClientHints();
+    clientHints.Headers.TryGetValue("Sec-CH-UA-Bitness", out StringValues bitness);
 }
 
 <div class="text-center">
     <h1 class="display-4">HTTP Client Hints</h1>
+    <p>Browsers send most of these headers only after a response has requested them with <code>Accept-CH</code>. Reload the page if values are missing.</p>
     <div>
         <table class="table">
             <thead class="thead-dark">
                 <tr>
                     <th scope="col">Header</th>
-                    <th scope="col">Value</th>
-                    <th scope="col">Last</th>
-                    <th scope="col">Handle</th>
+                    <th scope="col">Value as sent</th>
+                    <th scope="col">Decoded value</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>User-Agent</td>
                     <td>@(clientHints.UserAgent)</td>
+                    <td></td>
                 </tr>
-
                 <tr>
                     <td>Sec-CH-UA</td>
                     <td>@(clientHints.UA)</td>
+                    <td></td>
                 </tr>
                 <tr>
                     <td>Sec-CH-UA-Platform</td>
                     <td>@(clientHints.Platform)</td>
+                    <td>@(clientHints.DecodedPlatform)</td>
                 </tr>
                 <tr>
                     <td>Sec-CH-UA-Platform-Version</td>
                     <td>@(clientHints.PlatformVersion)</td>
+                    <td>@(clientHints.DecodedPlatformVersion)</td>
                 </tr>
                 <tr>
                     <td>Sec-CH-UA-Arch</td>
                     <td>@(clientHints.Architecture)</td>
+                    <td>@(clientHints.DecodedArchitecture)</td>
                 </tr>
                 <tr>
-                    <td>Sec-CH-UA-Full-Version-List"</td>
+                    <td>Sec-CH-UA-Bitness</td>
+                    <td>@(bitness)</td>
+                    <td>@(HttpClientHintsInterpreter.DecodeStructuredString(bitness))</td>
+                </tr>
+                <tr>
+                    <td>Sec-CH-UA-Full-Version-List</td>
                     <td>@(clientHints.FullVersionList)</td>
+                    <td></td>
                 </tr>
                 <tr>
                     <td>Sec-CH-UA-Model</td>
                     <td>@(clientHints.Model)</td>
+                    <td>@(clientHints.DecodedModel)</td>
                 </tr>
                 <tr>
                     <td>Sec-CH-UA-Mobile</td>
                     <td>@(clientHints.Mobile)</td>
+                    <td></td>
                 </tr>
             </tbody>
         </table>

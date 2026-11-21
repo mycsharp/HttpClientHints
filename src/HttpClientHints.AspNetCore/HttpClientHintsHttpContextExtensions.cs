@@ -12,7 +12,7 @@ public static class HttpClientHintsHttpContextExtensions
     /// <summary>
     /// The cache key used to store the client hints in the HttpContext.Items dictionary.
     /// </summary>
-    private const string ClientHintsCacheKey = "__HttpClientHints";
+    private static readonly object s_clientHintsCacheKey = new();
 
     /// <summary>
     /// Retrieves the <see cref="HttpClientHints"/> from the current HTTP context.
@@ -21,15 +21,14 @@ public static class HttpClientHintsHttpContextExtensions
     /// <returns>An instance of <see cref="HttpClientHints"/> populated with the relevant header values.</returns>
     public static HttpClientHints GetClientHints(this HttpContext context)
     {
-        // Check if client hints are already cached for this request
-        if (context.Items.TryGetValue(ClientHintsCacheKey, out object? cached) && cached is HttpClientHints hints)
+        IDictionary<object, object?> items = context.Items;
+        if (items.TryGetValue(s_clientHintsCacheKey, out object? cached) && cached is HttpClientHints hints)
         {
             return hints;
         }
 
-        // Create and cache new client hints
         HttpClientHints newHints = context.Request.Headers.GetClientHints();
-        context.Items[ClientHintsCacheKey] = newHints;
+        items[s_clientHintsCacheKey] = newHints;
         return newHints;
     }
 

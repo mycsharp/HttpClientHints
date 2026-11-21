@@ -14,6 +14,10 @@ public class HttpClientHintsInterpreterTests
     [InlineData(null, null)]
     [InlineData("unknown", null)]
     [InlineData("", null)]
+    [InlineData("?", null)]
+    [InlineData("?2", null)]
+    [InlineData("?10", null)]
+    [InlineData("!1", null)]
     public void IsMobile_ShouldReturnExpectedResult_ForGivenInput(string? input, bool? expectedResult)
     {
         // Act

@@ -14,7 +14,7 @@
     <None Include="readme.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
-  <ItemGroup Label="Dependencies">
+  <ItemGroup Label="Dependencies" Condition="'$(TargetFramework)' != 'net11.0'">
     <PackageReference Include="Microsoft.Extensions.Primitives" />
   </ItemGroup>
 </Project>

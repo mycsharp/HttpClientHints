@@ -105,4 +105,39 @@ public class HttpClientHintsHttpContextExtensionsTests
         // Assert
         Assert.Null(clientHints.Mobile);
     }
+
+    [Fact]
+    public void GetClientHintsView_UsesOnlyTheFirstValue()
+    {
+        HeaderDictionary headers = new()
+        {
+            ["Sec-CH-UA"] = new StringValues(["first", "second"]),
+            ["Sec-CH-UA-Mobile"] = new StringValues(["?0", "?1"]),
+            ["Sec-CH-UA-Platform"] = new StringValues([null, "fallback"]),
+            ["Sec-CH-UA-Model"] = new StringValues(string.Empty)
+        };
+
+        HttpClientHintsView view = headers.GetClientHintsView();
+
+        Assert.Equal("first", view.UA);
+        Assert.False(view.Mobile);
+        Assert.Null(view.Platform);
+        Assert.Equal(string.Empty, view.Model);
+    }
+
+    [Fact]
+    public void GetClientHints_ReusesSnapshotForTheSameContext()
+    {
+        DefaultHttpContext context = new();
+        context.Request.Headers["Sec-CH-UA"] = "original";
+        context.Items["__HttpClientHints"] = "application data";
+
+        HttpClientHints snapshot = context.GetClientHints();
+        context.Request.Headers["Sec-CH-UA"] = "updated";
+
+        Assert.Equal("original", snapshot.UA);
+        Assert.Same(snapshot, context.GetClientHints());
+        Assert.Equal("updated", context.GetClientHintsView().UA);
+        Assert.Equal("application data", context.Items["__HttpClientHints"]);
+    }
 }

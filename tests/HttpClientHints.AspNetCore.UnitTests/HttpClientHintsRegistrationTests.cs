@@ -1,9 +1,9 @@
 // Copyright © https://myCSharp.de - all rights reserved
 
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using NSubstitute;
 using Xunit;
 
 namespace MyCSharp.HttpClientHints.AspNetCore.UnitTests;
@@ -105,16 +105,19 @@ public class HttpClientHintsRegistrationTests
     }
 
     [Fact]
-    public void UseHttpClientHints_ReturnsApplicationBuilder()
+    public async Task UseHttpClientHints_AddsMiddlewareAndReturnsApplicationBuilder()
     {
-        // Arrange
-        IApplicationBuilder appBuilder = Substitute.For<IApplicationBuilder>();
+        ServiceCollection services = new();
+        services.AddHttpClientHints();
+        using ServiceProvider serviceProvider = services.BuildServiceProvider();
+        ApplicationBuilder appBuilder = new(serviceProvider);
 
-        // Act
         IApplicationBuilder result = appBuilder.UseHttpClientHints();
+        appBuilder.Run(static _ => Task.CompletedTask);
+        DefaultHttpContext context = new();
+        await appBuilder.Build()(context);
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.Same(appBuilder, result); // Ensure the same instance is returned
+        Assert.Same(appBuilder, result);
+        Assert.Contains("Sec-CH-UA", context.Response.Headers["Accept-CH"].ToString(), StringComparison.Ordinal);
     }
 }

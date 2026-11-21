@@ -5,7 +5,7 @@ set shell := ["pwsh", "-c"]
 
 # ===== Configurable defaults =====
 CONFIG  := "Debug"
-TFM     := "net10.0"
+TFM     := "net11.0"
 BENCH_PRJ := "perf/HttpClientHints.Benchmarks/HttpClientHints.Benchmarks.csproj"
 
 # ===== Default / Help =====
@@ -43,14 +43,14 @@ format-check:
     dotnet format --verify-no-changes --verbosity minimal
 
 test *ARGS:
-    dotnet test --configuration "{{CONFIG}}" --framework "{{TFM}}" --nologo --verbosity minimal {{ARGS}}
+    dotnet test --configuration "{{CONFIG}}" --framework "{{TFM}}" {{ARGS}}
 
 test-cov:
-    dotnet test --configuration "{{CONFIG}}" --framework "{{TFM}}" --nologo --verbosity minimal /p:CollectCoverage=true /p:CoverletOutputFormat="cobertura,lcov,opencover" /p:CoverletOutput="./TestResults/coverage/coverage"
+    dotnet test --configuration "{{CONFIG}}" --framework "{{TFM}}" --results-directory-layout per-module -- --coverage --coverage-output-format cobertura
 
 
 test-filter QUERY:
-    dotnet test --configuration "{{CONFIG}}" --framework "{{TFM}}" --nologo --verbosity minimal --filter "{{QUERY}}"
+    dotnet test --configuration "{{CONFIG}}" --framework "{{TFM}}" -- --filter-query "{{QUERY}}"
 
 # ===== Packaging / Release =====
 pack *ARGS:
@@ -64,7 +64,7 @@ publish-sc RID *ARGS:
 
 # ===== Benchmarks =====
 bench *ARGS:
-    dotnet run --configuration Release --project "{{BENCH_PRJ}}" --framework "{{TFM}}" {{ARGS}}
+    dotnet run --configuration Release --project "{{BENCH_PRJ}}" --framework "{{TFM}}" -- {{ARGS}}
 
 # ===== Housekeeping =====
 clean-artifacts:

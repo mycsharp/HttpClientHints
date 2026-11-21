@@ -68,13 +68,13 @@ jobs:
         run: dotnet build --configuration ${{ inputs.configuration }} --no-restore /p:Version=${{ steps.nbgv.outputs.SemVer2 }}
 
       - name: Test
-        run: dotnet test --configuration ${{ inputs.configuration }} --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test --configuration ${{ inputs.configuration }} --no-build --results-directory TestResults --results-directory-layout per-module -- --report-trx
 
       - name: Upload test results
         if: always() && inputs.upload-test-results
         uses: actions/upload-artifact@v6
         with:
-          name: test-results-${{ inputs.dotnet-version }}
+          name: test-results
           path: '**/TestResults/**/*.trx'
 
       - name: Pack NuGet packages

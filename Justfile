@@ -7,6 +7,8 @@ set shell := ["pwsh", "-c"]
 CONFIG  := "Debug"
 TFM     := "net11.0"
 BENCH_PRJ := "perf/HttpClientHints.Benchmarks/HttpClientHints.Benchmarks.csproj"
+COV_DIR := "TestResults/coverage"
+COV_MIN := "90"
 
 # ===== Default / Help =====
 default: help
@@ -46,7 +48,9 @@ test *ARGS:
     dotnet test --configuration "{{CONFIG}}" --framework "{{TFM}}" {{ARGS}}
 
 test-cov:
-    dotnet test --configuration "{{CONFIG}}" --framework "{{TFM}}" --results-directory-layout per-module -- --coverage --coverage-output-format cobertura
+    if (Test-Path "{{COV_DIR}}") { Remove-Item "{{COV_DIR}}" -Recurse -Force }
+    dotnet test --configuration "{{CONFIG}}" --framework "{{TFM}}" --results-directory "{{COV_DIR}}" --results-directory-layout per-module -- --coverage --coverage-output-format cobertura
+    ./eng/Assert-CodeCoverage.ps1 -ResultsDirectory "{{COV_DIR}}" -Threshold {{COV_MIN}}
 
 
 test-filter QUERY:

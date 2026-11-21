@@ -44,6 +44,14 @@ public class HttpClientHintBenchmarks
     }
 
     [Benchmark]
+    public int ReadDecodedViewProperties()
+    {
+        HttpClientHintsView view = _headers.GetClientHintsView();
+        return (view.UA?.Length ?? 0) + (view.DecodedPlatform?.Length ?? 0)
+            + (view.DecodedArchitecture?.Length ?? 0) + (view.Mobile == false ? 1 : 0);
+    }
+
+    [Benchmark]
     public ClientHints GetClientHintsFromHeaders() => _headers.GetClientHints();
 
     [Benchmark]

@@ -26,4 +26,41 @@ public class HttpClientHintsInterpreterTests
         // Assert
         Assert.Equal(expectedResult, result);
     }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", "")]
+    [InlineData("   ", "   ")]
+    [InlineData("legacy unquoted value", "legacy unquoted value")]
+    [InlineData("\"\"", "")]
+    [InlineData("\"Windows\"", "Windows")]
+    [InlineData(" \t\"model\"\t ", "model")]
+    [InlineData("\"  model  \"", "  model  ")]
+    [InlineData("\"Model \\\"Pro\\\" \\\\ Edition\"", "Model \"Pro\" \\ Edition")]
+    [InlineData("\"\\\\\"", "\\")]
+    [InlineData("\" !#[]~\"", " !#[]~")]
+    [InlineData("\"", null)]
+    [InlineData("\"Model", null)]
+    [InlineData("\"Model\" suffix", null)]
+    [InlineData("\"Model\\\"", null)]
+    [InlineData("\"Model\\q\"", null)]
+    [InlineData("\"Model\" \"Pro\"", null)]
+    [InlineData("\"Model\tPro\"", null)]
+    [InlineData("\"Model\u007F\"", null)]
+    [InlineData("\"Modèle\"", null)]
+    [InlineData("\"Model\";v=1", null)]
+    public void DecodeStructuredString_ShouldReturnExpectedResult_ForGivenInput(string? input, string? expectedResult)
+    {
+        string? result = HttpClientHintsInterpreter.DecodeStructuredString(input);
+
+        Assert.Equal(expectedResult, result);
+    }
+
+    [Fact]
+    public void DecodeStructuredString_ReturnsTheSameInstance_ForUnquotedValues()
+    {
+        string unquoted = "Windows";
+
+        Assert.Same(unquoted, HttpClientHintsInterpreter.DecodeStructuredString(unquoted));
+    }
 }

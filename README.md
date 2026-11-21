@@ -147,6 +147,18 @@ dotnet test -c Release --no-build
 
 Line and branch coverage must stay at or above 90 %. CI collects coverage on every build and fails below this threshold. Run the same check locally with `just test-cov`, or call `./eng/Assert-CodeCoverage.ps1` after a test run with `--coverage --coverage-output-format cobertura`.
 
+## Release
+
+Every push to `main` builds and tests the solution and creates a draft GitHub release with the NuGet packages. Publishing that release runs `.github/workflows/release-publish.yml`, which pushes the packages to NuGet.org with [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing). The workflow exchanges a GitHub OIDC token for a NuGet API key that is valid for one hour, so the repository stores no NuGet API key.
+
+To publish the packages of an existing release again, run the workflow manually with the release tag:
+
+```shell
+gh workflow run release-publish.yml -f tag=v3.2.3
+```
+
+The workflow requires a Trusted Publishing policy on NuGet.org for the `MyCSharp` organization with the repository `mycsharp/HttpClientHints` and the workflow file `release-publish.yml`, and the repository secret `NUGET_USER` with the NuGet.org profile name of the member who created the policy.
+
 ## Benchmark
 
 Reading header values from the view does not allocate, and a snapshot allocates only the record. A `Decoded*` property allocates the decoded string of a quoted value on every access. Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Benchmarks --framework net11.0 -- --filter '*' --iterationCount 15 --iterationTime 200 --launchCount 2 --warmupCount 6`.

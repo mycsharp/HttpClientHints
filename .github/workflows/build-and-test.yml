@@ -68,14 +68,20 @@ jobs:
         run: dotnet build --configuration ${{ inputs.configuration }} --no-restore /p:Version=${{ steps.nbgv.outputs.SemVer2 }}
 
       - name: Test
-        run: dotnet test --configuration ${{ inputs.configuration }} --no-build --results-directory TestResults --results-directory-layout per-module -- --report-trx
+        run: dotnet test --configuration ${{ inputs.configuration }} --no-build --results-directory TestResults --results-directory-layout per-module -- --report-trx --coverage --coverage-output-format cobertura
+
+      - name: Check code coverage
+        shell: pwsh
+        run: ./eng/Assert-CodeCoverage.ps1 -ResultsDirectory TestResults -Threshold 90
 
       - name: Upload test results
         if: always() && inputs.upload-test-results
         uses: actions/upload-artifact@v6
         with:
           name: test-results
-          path: '**/TestResults/**/*.trx'
+          path: |
+            **/TestResults/**/*.trx
+            **/TestResults/**/*.cobertura.xml
 
       - name: Pack NuGet packages
         if: inputs.create-pack

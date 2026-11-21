@@ -1,16 +1,17 @@
 // Copyright © https://myCSharp.de - all rights reserved
 
+using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
 /// <summary>
-/// A zero-allocation view over <see cref="IHeaderDictionary"/> to access HTTP Client Hints lazily.
+/// A view over <see cref="IHeaderDictionary"/> to access HTTP Client Hints lazily.
 /// </summary>
 /// <remarks>
-/// This struct does not allocate and reads values directly from the underlying request headers on demand.
-/// Use <see cref="BuildSnapshot"/> to materialize a heap-allocated <see cref="HttpClientHints"/> record if needed.
+/// Creating the view and reading raw values do not allocate. Reading a decoded quoted value can allocate a string.
+/// Use <see cref="BuildSnapshot"/> to capture raw and decoded values in a <see cref="HttpClientHints"/> record.
 /// </remarks>
 /// <remarks>
 /// Creates a new view over the given headers.
@@ -28,20 +29,52 @@ public readonly struct HttpClientHintsView(IHeaderDictionary headers)
     public string? UA
         => GetFirstValue("Sec-CH-UA");
 
-    /// <summary>Sec-CH-UA-Platform</summary>
+    /// <summary>Gets the decoded Sec-CH-UA-Platform value.</summary>
+    /// <value>
+    /// The unescaped content of a quoted value, an unquoted value as sent, or <see langword="null"/> if the header is
+    /// missing, the quoted value is malformed, or the value has parameters.
+    /// </value>
     public string? Platform
+        => DecodeString(RawPlatform);
+
+    /// <summary>Gets the original Sec-CH-UA-Platform value, including any quotes and escapes.</summary>
+    public string? RawPlatform
         => GetFirstValue("Sec-CH-UA-Platform");
 
-    /// <summary>Sec-CH-UA-Platform-Version</summary>
+    /// <summary>Gets the decoded Sec-CH-UA-Platform-Version value.</summary>
+    /// <value>
+    /// The unescaped content of a quoted value, an unquoted value as sent, or <see langword="null"/> if the header is
+    /// missing, the quoted value is malformed, or the value has parameters.
+    /// </value>
     public string? PlatformVersion
+        => DecodeString(RawPlatformVersion);
+
+    /// <summary>Gets the original Sec-CH-UA-Platform-Version value, including any quotes and escapes.</summary>
+    public string? RawPlatformVersion
         => GetFirstValue("Sec-CH-UA-Platform-Version");
 
-    /// <summary>Sec-CH-UA-Arch</summary>
+    /// <summary>Gets the decoded Sec-CH-UA-Arch value.</summary>
+    /// <value>
+    /// The unescaped content of a quoted value, an unquoted value as sent, or <see langword="null"/> if the header is
+    /// missing, the quoted value is malformed, or the value has parameters.
+    /// </value>
     public string? Architecture
+        => DecodeString(RawArchitecture);
+
+    /// <summary>Gets the original Sec-CH-UA-Arch value, including any quotes and escapes.</summary>
+    public string? RawArchitecture
         => GetFirstValue("Sec-CH-UA-Arch");
 
-    /// <summary>Sec-CH-UA-Model</summary>
+    /// <summary>Gets the decoded Sec-CH-UA-Model value.</summary>
+    /// <value>
+    /// The unescaped content of a quoted value, an unquoted value as sent, or <see langword="null"/> if the header is
+    /// missing, the quoted value is malformed, or the value has parameters.
+    /// </value>
     public string? Model
+        => DecodeString(RawModel);
+
+    /// <summary>Gets the original Sec-CH-UA-Model value, including any quotes and escapes.</summary>
+    public string? RawModel
         => GetFirstValue("Sec-CH-UA-Model");
 
     /// <summary>Sec-CH-UA-Full-Version-List</summary>
@@ -53,11 +86,66 @@ public readonly struct HttpClientHintsView(IHeaderDictionary headers)
         => HttpClientHintsInterpreter.IsMobile(GetFirstValue("Sec-CH-UA-Mobile"));
 
     /// <summary>
-    /// Materializes a snapshot record of the current values. This allocates one object.
+    /// Materializes a snapshot record of the current raw and decoded values.
     /// </summary>
     public HttpClientHints BuildSnapshot()
-        => new(UserAgent, Platform, PlatformVersion, Architecture, Model, FullVersionList, UA, Mobile, headers);
+    {
+        string? rawPlatform = RawPlatform;
+        string? rawPlatformVersion = RawPlatformVersion;
+        string? rawArchitecture = RawArchitecture;
+        string? rawModel = RawModel;
+
+        return new HttpClientHints(UserAgent, DecodeString(rawPlatform), DecodeString(rawPlatformVersion),
+            DecodeString(rawArchitecture), DecodeString(rawModel), FullVersionList, UA, Mobile, headers)
+        {
+            RawPlatform = rawPlatform,
+            RawPlatformVersion = rawPlatformVersion,
+            RawArchitecture = rawArchitecture,
+            RawModel = rawModel
+        };
+    }
 
     private string? GetFirstValue(string key)
         => headers.TryGetValue(key, out StringValues values) && values.Count > 0 ? values[0] : null;
+
+    private static string? DecodeString(string? rawValue)
+    {
+        ReadOnlySpan<char> value = rawValue.AsSpan().Trim(" \t");
+        if (value.IsEmpty || value[0] != '"')
+        {
+            return rawValue;
+        }
+
+        if (value.Length < 2 || value[^1] != '"')
+        {
+            return null;
+        }
+
+        // RFC 9651 section 4.2.5 defines the quoted string and its two permitted escapes.
+        ReadOnlySpan<char> content = value[1..^1];
+        StringBuilder? decoded = null;
+        for (int index = 0; index < content.Length; index++)
+        {
+            char character = content[index];
+            if (character == '\\')
+            {
+                int escapeIndex = index++;
+                if (index == content.Length || content[index] is not ('"' or '\\'))
+                {
+                    return null;
+                }
+
+                decoded ??= new StringBuilder(content.Length).Append(content[..escapeIndex]);
+                character = content[index];
+            }
+            else if (character is '"' or < ' ' or > '~')
+            {
+                return null;
+            }
+
+            decoded?.Append(character);
+        }
+
+        return decoded?.ToString() ?? content.ToString();
+    }
 }

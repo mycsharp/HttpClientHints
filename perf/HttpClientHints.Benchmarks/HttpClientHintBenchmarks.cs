@@ -44,6 +44,14 @@ public class HttpClientHintBenchmarks
     }
 
     [Benchmark]
+    public int ReadRawViewProperties()
+    {
+        HttpClientHintsView view = _headers.GetClientHintsView();
+        return (view.UA?.Length ?? 0) + (view.RawPlatform?.Length ?? 0)
+            + (view.RawArchitecture?.Length ?? 0) + (view.Mobile == false ? 1 : 0);
+    }
+
+    [Benchmark]
     public ClientHints GetClientHintsFromHeaders() => _headers.GetClientHints();
 
     [Benchmark]

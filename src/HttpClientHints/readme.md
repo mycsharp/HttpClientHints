@@ -2,6 +2,6 @@
 
 Read HTTP Client Hints with .NET
 
-In 4.0, the `HttpClientHints` record has `RawPlatform`, `RawPlatformVersion`, `RawArchitecture`, and `RawModel` properties for the original header values. [Upgrade guide](https://github.com/mycsharp/HttpClientHints#upgrading-to-40)
+Since 3.2, the `HttpClientHints` record has `DecodedPlatform`, `DecodedPlatformVersion`, `DecodedArchitecture`, and `DecodedModel` properties that return the header values without quotes, and `HttpClientHintsInterpreter.DecodeStructuredString` decodes other quoted header values. [Decoded values](https://github.com/mycsharp/HttpClientHints#decoded-values)
 
 https://github.com/mycsharp/HttpClientHints

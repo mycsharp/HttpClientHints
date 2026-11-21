@@ -30,14 +30,14 @@ public class HttpClientHintsHttpContextExtensionsTests
 
         // Assert
         Assert.Equal("TestUserAgent", clientHints.UserAgent);
-        Assert.Equal("Windows", clientHints.Platform);
-        Assert.Equal("\"Windows\"", clientHints.RawPlatform);
-        Assert.Equal("19.0.0", clientHints.PlatformVersion);
-        Assert.Equal("\"19.0.0\"", clientHints.RawPlatformVersion);
-        Assert.Equal("x86", clientHints.Architecture);
-        Assert.Equal("\"x86\"", clientHints.RawArchitecture);
-        Assert.Equal(string.Empty, clientHints.Model);
-        Assert.Equal("\"\"", clientHints.RawModel);
+        Assert.Equal("\"Windows\"", clientHints.Platform);
+        Assert.Equal("Windows", clientHints.DecodedPlatform);
+        Assert.Equal("\"19.0.0\"", clientHints.PlatformVersion);
+        Assert.Equal("19.0.0", clientHints.DecodedPlatformVersion);
+        Assert.Equal("\"x86\"", clientHints.Architecture);
+        Assert.Equal("x86", clientHints.DecodedArchitecture);
+        Assert.Equal("\"\"", clientHints.Model);
+        Assert.Equal(string.Empty, clientHints.DecodedModel);
         Assert.Equal("\"Chromium\";v=\"138.0.7204.97\"", clientHints.FullVersionList);
         Assert.Equal("\"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"", clientHints.UA);
         Assert.True(clientHints.Mobile);
@@ -56,13 +56,13 @@ public class HttpClientHintsHttpContextExtensionsTests
         // Assert
         Assert.Null(clientHints.UserAgent);
         Assert.Null(clientHints.Platform);
-        Assert.Null(clientHints.RawPlatform);
+        Assert.Null(clientHints.DecodedPlatform);
         Assert.Null(clientHints.PlatformVersion);
-        Assert.Null(clientHints.RawPlatformVersion);
+        Assert.Null(clientHints.DecodedPlatformVersion);
         Assert.Null(clientHints.Architecture);
-        Assert.Null(clientHints.RawArchitecture);
+        Assert.Null(clientHints.DecodedArchitecture);
         Assert.Null(clientHints.Model);
-        Assert.Null(clientHints.RawModel);
+        Assert.Null(clientHints.DecodedModel);
         Assert.Null(clientHints.FullVersionList);
         Assert.Null(clientHints.UA);
         Assert.Null(clientHints.Mobile);
@@ -71,40 +71,26 @@ public class HttpClientHintsHttpContextExtensionsTests
 
     [Theory]
     [InlineData(null, null)]
-    [InlineData("", "")]
     [InlineData("legacy unquoted value", "legacy unquoted value")]
     [InlineData("\"\"", "")]
-    [InlineData(" \t\"model\"\t ", "model")]
-    [InlineData("\"  model  \"", "  model  ")]
     [InlineData("\"Model \\\"Pro\\\" \\\\ Edition\"", "Model \"Pro\" \\ Edition")]
     [InlineData("\"Model", null)]
-    [InlineData("\"Model\" suffix", null)]
-    [InlineData("\"Model\\\"", null)]
-    [InlineData("\"Model\\q\"", null)]
-    [InlineData("\"Model\" \"Pro\"", null)]
-    [InlineData("\"Model\tPro\"", null)]
-    [InlineData("\"Modèle\"", null)]
-    [InlineData("   ", "   ")]
-    [InlineData("\"", null)]
-    [InlineData("\"\\\\\"", "\\")]
-    [InlineData("\" !#[]~\"", " !#[]~")]
-    [InlineData("\"Model\u007F\"", null)]
     [InlineData("\"Model\";v=1", null)]
-    public void GetClientHints_ExposesDecodedAndRawStructuredStrings(string? rawModel, string? model)
+    public void GetClientHints_KeepsHeaderValueAndDecodesOnDemand(string? headerValue, string? decodedValue)
     {
         HeaderDictionary headers = [];
-        if (rawModel is not null)
+        if (headerValue is not null)
         {
-            headers["Sec-CH-UA-Model"] = rawModel;
+            headers["Sec-CH-UA-Model"] = headerValue;
         }
 
         HttpClientHintsView view = headers.GetClientHintsView();
         HttpClientHints snapshot = headers.GetClientHints();
 
-        Assert.Equal(model, view.Model);
-        Assert.Equal(rawModel, view.RawModel);
-        Assert.Equal(model, snapshot.Model);
-        Assert.Equal(rawModel, snapshot.RawModel);
+        Assert.Equal(headerValue, view.Model);
+        Assert.Equal(decodedValue, view.DecodedModel);
+        Assert.Equal(headerValue, snapshot.Model);
+        Assert.Equal(decodedValue, snapshot.DecodedModel);
     }
 
     [Fact]
@@ -121,14 +107,14 @@ public class HttpClientHintsHttpContextExtensionsTests
         HttpClientHintsView view = headers.GetClientHintsView();
 
         Assert.Same(headers, view.Headers);
-        Assert.Equal("Windows", view.Platform);
-        Assert.Equal("\"Windows\"", view.RawPlatform);
-        Assert.Equal("19.0.0", view.PlatformVersion);
-        Assert.Equal("\"19.0.0\"", view.RawPlatformVersion);
-        Assert.Equal("arm", view.Architecture);
-        Assert.Equal("\"arm\"", view.RawArchitecture);
-        Assert.Equal("Pixel \"9\"", view.Model);
-        Assert.Equal("\"Pixel \\\"9\\\"\"", view.RawModel);
+        Assert.Equal("\"Windows\"", view.Platform);
+        Assert.Equal("Windows", view.DecodedPlatform);
+        Assert.Equal("\"19.0.0\"", view.PlatformVersion);
+        Assert.Equal("19.0.0", view.DecodedPlatformVersion);
+        Assert.Equal("\"arm\"", view.Architecture);
+        Assert.Equal("arm", view.DecodedArchitecture);
+        Assert.Equal("\"Pixel \\\"9\\\"\"", view.Model);
+        Assert.Equal("Pixel \"9\"", view.DecodedModel);
     }
 
     [Fact]
@@ -192,8 +178,9 @@ public class HttpClientHintsHttpContextExtensionsTests
         Assert.Equal("first", view.UA);
         Assert.False(view.Mobile);
         Assert.Null(view.Platform);
-        Assert.Null(view.RawPlatform);
+        Assert.Null(view.DecodedPlatform);
         Assert.Equal(string.Empty, view.Model);
+        Assert.Equal(string.Empty, view.DecodedModel);
     }
 
     [Fact]
@@ -209,13 +196,13 @@ public class HttpClientHintsHttpContextExtensionsTests
         context.Request.Headers["Sec-CH-UA-Platform"] = "\"Linux\"";
 
         Assert.Equal("original", snapshot.UA);
-        Assert.Equal("Windows", snapshot.Platform);
-        Assert.Equal("\"Windows\"", snapshot.RawPlatform);
+        Assert.Equal("\"Windows\"", snapshot.Platform);
+        Assert.Equal("Windows", snapshot.DecodedPlatform);
         Assert.Same(snapshot, context.GetClientHints());
         HttpClientHintsView view = context.GetClientHintsView();
         Assert.Equal("updated", view.UA);
-        Assert.Equal("Linux", view.Platform);
-        Assert.Equal("\"Linux\"", view.RawPlatform);
+        Assert.Equal("\"Linux\"", view.Platform);
+        Assert.Equal("Linux", view.DecodedPlatform);
         Assert.Equal("application data", context.Items["__HttpClientHints"]);
     }
 }

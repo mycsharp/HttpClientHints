@@ -33,13 +33,13 @@ public static class HttpClientHintsHttpContextExtensions
     }
 
     /// <summary>
-    /// Returns a view over the request headers for accessing Client Hints lazily.
+    /// Returns a zero-allocation view over the request headers for accessing Client Hints lazily.
     /// </summary>
     public static HttpClientHintsView GetClientHintsView(this HttpContext context)
         => new(context.Request.Headers);
 
     /// <summary>
-    /// Returns a view over the provided headers for accessing Client Hints lazily.
+    /// Returns a zero-allocation view over the provided headers for accessing Client Hints lazily.
     /// </summary>
     public static HttpClientHintsView GetClientHintsView(this IHeaderDictionary headers)
         => new(headers);
@@ -51,6 +51,7 @@ public static class HttpClientHintsHttpContextExtensions
     /// <returns>An instance of <see cref="HttpClientHints"/> populated with the relevant header values.</returns>
     public static HttpClientHints GetClientHints(this IHeaderDictionary headers)
     {
+        // Use the non-allocating view to gather values and build a snapshot.
         HttpClientHintsView view = new(headers);
         return view.BuildSnapshot();
     }

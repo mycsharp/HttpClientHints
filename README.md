@@ -57,28 +57,28 @@ HttpClientHints clientHints = HttpClientHintsHttpContextExtensions.GetClientHint
 
 Since potentially all client hints are optional, all properties are potentially nullable, which means that the client has not provided this data.
 
-## Upgrading to 4.0
+## Decoded values
 
-**Breaking change.** Version 4.0 changes what four properties return when Client Hints are read through `GetClientHints()` or `GetClientHintsView()`. They now decode the HTTP Structured Field string. To keep using the original value as returned in 3.x, switch to the corresponding `Raw*` property.
+Browsers send `Sec-CH-UA-Platform`, `Sec-CH-UA-Platform-Version`, `Sec-CH-UA-Arch`, and `Sec-CH-UA-Model` as quoted strings, for example `Sec-CH-UA-Platform: "Windows"`. `Platform`, `PlatformVersion`, `Architecture`, and `Model` return these header values as sent, including the quotes. Since 3.2, the matching `Decoded*` properties return the value without quotes and escapes.
 
-| Decoded property | Raw property | Request header |
+| Request header | Property | Decoded property |
 | --- | --- | --- |
-| `Platform` | `RawPlatform` | `Sec-CH-UA-Platform` |
-| `PlatformVersion` | `RawPlatformVersion` | `Sec-CH-UA-Platform-Version` |
-| `Architecture` | `RawArchitecture` | `Sec-CH-UA-Arch` |
-| `Model` | `RawModel` | `Sec-CH-UA-Model` |
-
-For a request with `Sec-CH-UA-Platform: "Windows"`, both forms are available.
+| `Sec-CH-UA-Platform` | `Platform` | `DecodedPlatform` |
+| `Sec-CH-UA-Platform-Version` | `PlatformVersion` | `DecodedPlatformVersion` |
+| `Sec-CH-UA-Arch` | `Architecture` | `DecodedArchitecture` |
+| `Sec-CH-UA-Model` | `Model` | `DecodedModel` |
 
 ```csharp
 HttpClientHints hints = httpContext.GetClientHints();
-bool isWindows = hints.Platform == "Windows";
-string? originalPlatformHeader = hints.RawPlatform; // Contains the two quote characters.
+string? platformHeader = hints.Platform;   // "Windows", including the two quote characters
+bool isWindows = hints.DecodedPlatform == "Windows";
 ```
 
-An absent header yields `null` for both properties. A quoted empty value such as `Sec-CH-UA-Model: ""` decodes to `string.Empty`. Unquoted values pass through as supplied. A malformed quoted value yields `null` in the decoded property and remains available in the raw property. Parameters are not supported: `Sec-CH-UA-Platform: "Windows";a=1` also yields `null` in the decoded property. [RFC 9651 § 4.2.5](https://www.rfc-editor.org/rfc/rfc9651.html#section-4.2.5)
+The `Decoded*` properties are available on `HttpClientHints` and `HttpClientHintsView`. They decode the value on every access and store nothing, so reading `Platform` or building a snapshot costs nothing extra. Store the decoded value in a local variable if you need it more than once. `HttpClientHintsInterpreter.DecodeStructuredString` decodes any other header value of this type.
 
-`UA` and `FullVersionList` expose serialized brand lists. The `Headers` collection provides access to all original header values. If you construct an `HttpClientHints` record directly, supply the decoded values to its constructor and set the raw properties in an object initializer when you have the original values. A `with` expression that changes a decoded property, such as `hints with { Platform = "Linux" }`, leaves the matching `Raw*` property unchanged.
+An absent header yields `null`. A quoted empty value such as `Sec-CH-UA-Model: ""` decodes to `string.Empty`. Unquoted values pass through as supplied. A malformed quoted value yields `null`. Parameters are not supported: `Sec-CH-UA-Platform: "Windows";a=1` also yields `null`. [RFC 9651 § 4.2.5](https://www.rfc-editor.org/rfc/rfc9651.html#section-4.2.5)
+
+`UA` and `FullVersionList` expose serialized brand lists. The `Headers` collection provides access to all original header values.
 
 ## Customization
 
@@ -118,12 +118,12 @@ Line and branch coverage must stay at or above 90 %. CI collects coverage on eve
 
 ## Benchmark
 
-Reading `Raw*` properties from the view does not allocate. Reading a decoded property allocates the decoded string, and a snapshot stores both forms. Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Benchmarks --framework net11.0 -- --filter '*' --iterationCount 15 --iterationTime 200 --launchCount 2 --warmupCount 6`.
+Reading header values from the view does not allocate, and a snapshot allocates only the record. A `Decoded*` property allocates the decoded string of a quoted value on every access. Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Benchmarks --framework net11.0 -- --filter '*' --iterationCount 15 --iterationTime 200 --launchCount 2 --warmupCount 6`.
 
 ```
 BenchmarkDotNet v0.16.0-preview.2, Windows 10 (10.0.19045.7846/22H2/2022Update)
 AMD Ryzen 9 9950X 4.30GHz, 1 CPU, 32 logical and 16 physical cores
-Memory: 61,64 GB Total, 21,42 GB Available
+Memory: 61,64 GB Total, 31,05 GB Available
 .NET SDK 11.0.100
   [Host]     : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
   Job-ZRYWOI : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
@@ -132,14 +132,14 @@ IterationCount=15  IterationTime=200ms  LaunchCount=2
 WarmupCount=6
 ```
 
-| Method                                | Mean       | Error     | StdDev    | Median     | Gen0   | Allocated |
-|-------------------------------------- |-----------:|----------:|----------:|-----------:|-------:|----------:|
-| ReadViewProperties                    |  38.403 ns | 1.2810 ns | 1.8777 ns |  37.723 ns | 0.0042 |      72 B |
-| ReadRawViewProperties                 |  19.796 ns | 0.5348 ns | 0.7671 ns |  19.829 ns |      - |         - |
-| GetClientHintsFromHeaders             |  96.731 ns | 2.1783 ns | 3.1241 ns |  96.137 ns | 0.0134 |     232 B |
-| GetClientHintsFromHeadersWithoutHints |  61.318 ns | 1.8116 ns | 2.6554 ns |  59.624 ns | 0.0072 |     120 B |
-| GetClientHintsFromContextUncached     | 108.202 ns | 1.5130 ns | 2.0709 ns | 108.719 ns | 0.0136 |     232 B |
-| GetClientHintsFromContextCached       |   6.524 ns | 0.0837 ns | 0.1227 ns |   6.510 ns |      - |         - |
+| Method                                | Mean      | Error     | StdDev    | Gen0   | Allocated |
+|-------------------------------------- |----------:|----------:|----------:|-------:|----------:|
+| ReadViewProperties                    | 18.956 ns | 0.3872 ns | 0.5299 ns |      - |         - |
+| ReadDecodedViewProperties             | 36.646 ns | 0.5085 ns | 0.6961 ns | 0.0042 |      72 B |
+| GetClientHintsFromHeaders             | 57.352 ns | 0.4389 ns | 0.6295 ns | 0.0052 |      88 B |
+| GetClientHintsFromHeadersWithoutHints | 49.915 ns | 0.7589 ns | 1.1124 ns | 0.0050 |      88 B |
+| GetClientHintsFromContextUncached     | 71.118 ns | 0.5539 ns | 0.8119 ns | 0.0049 |      88 B |
+| GetClientHintsFromContextCached       |  6.052 ns | 0.1073 ns | 0.1538 ns |      - |         - |
 
 ## Samples
 

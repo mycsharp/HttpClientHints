@@ -1,10 +1,13 @@
+@using Microsoft.AspNetCore.Http.Features
 @using Microsoft.Extensions.Primitives
 @using MyCSharp.HttpClientHints
 @using MyCSharp.HttpClientHints.AspNetCore
 @{
     ViewData["Title"] = "Home Page";
 
-    HttpClientHints clientHints = Context.GetClientHints();
+    // Registered by app.UseHttpClientHintsFeature() in Program.cs.
+    // Context.GetClientHints() returns the same snapshot without the feature.
+    HttpClientHints clientHints = Context.Features.GetRequiredFeature<IHttpClientHintsFeature>().Snapshot;
     clientHints.Headers.TryGetValue("Sec-CH-UA-Bitness", out StringValues bitness);
 }
 

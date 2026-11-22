@@ -47,7 +47,7 @@ app.UseRouting();
 ...
 ```
 
-The client hints are not read by a separate dependency injection registration, but as an extension method to the header collection or to the HttpContext object.
+The client hints are not read by a separate dependency injection registration, but as an extension method to the header collection or to the HttpContext object. Optionally, a separate middleware also provides them as an `HttpContext` feature, see [HttpContext feature](#httpcontext-feature).
 
 ```csharp
 using MyCSharp.HttpClientHints.AspNetCore;
@@ -71,6 +71,35 @@ bool? isMobile = view.Mobile;
 ```
 
 Since potentially all client hints are optional, all properties are potentially nullable, which means that the client has not provided this data.
+
+## HttpContext feature
+
+Since 3.3, you can register `IHttpClientHintsFeature` in `HttpContext.Features` with a separate middleware. Add it only if you want to read the Client Hints through the feature:
+
+```csharp
+app.UseHttpClientHints();
+
+// Optional: provide IHttpClientHintsFeature in HttpContext.Features
+app.UseHttpClientHintsFeature();
+```
+
+`UseHttpClientHintsFeature()` does not require `AddHttpClientHints()` or `UseHttpClientHints()`. Every middleware and handler after it can read the Client Hints from the feature:
+
+```csharp
+IHttpClientHintsFeature? feature = httpContext.Features.Get<IHttpClientHintsFeature>();
+bool? isMobile = feature?.View.Mobile;
+```
+
+| Property | Same as |
+| --- | --- |
+| `View` | `httpContext.GetClientHintsView()` |
+| `Snapshot` | `httpContext.GetClientHints()`, including the cached instance |
+
+`Snapshot` keeps the values read on the first access. `Snapshot.Headers` references the request headers, so it shows later changes to them.
+
+The middleware registers the feature for every request, whether or not `Accept-CH` is configured, because browsers send some Client Hints such as `Sec-CH-UA-Mobile` without a request. The registration replaces an `IHttpClientHintsFeature` registered earlier in the pipeline. Register your own implementation after `app.UseHttpClientHintsFeature()`. The feature references the `HttpContext`, so do not keep it beyond the request.
+
+Without `UseHttpClientHintsFeature()`, requests have no additional cost, and `Features.Get<IHttpClientHintsFeature>()` returns `null`. The extension methods work in both cases. With it, the feature is created for every request, even if no handler reads it. In the [benchmark](#benchmark), which reuses one `DefaultHttpContext`, the feature middleware takes about 12 ns and allocates 24 B per request. Together with `UseHttpClientHints()`, the pipeline takes about 19 ns more than `UseHttpClientHints()` alone, because `HttpContext` looks up its cached features again after the registration. The cost depends on the server: in a test with Kestrel on .NET 11, the registration allocated 24 B or 112 B per request, depending on whether Kestrel reused its request object.
 
 ## Decoded values
 
@@ -145,7 +174,7 @@ dotnet build -c Release
 dotnet test -c Release --no-build
 ```
 
-Line and branch coverage must stay at or above 90 %. CI collects coverage on every build and fails below this threshold. Run the same check locally with `just test-cov`, or call `./eng/Assert-CodeCoverage.ps1` after a test run with `--coverage --coverage-output-format cobertura`.
+Line and branch coverage of both packages must stay at 100 %. CI collects coverage on every build and fails below this threshold. Run the same check locally with `just test-cov`, or call `./eng/Assert-CodeCoverage.ps1` after a test run with `--coverage --coverage-output-format cobertura`.
 
 ## Release
 
@@ -161,12 +190,12 @@ The workflow requires a Trusted Publishing policy on NuGet.org for the `MyCSharp
 
 ## Benchmark
 
-Reading header values from the view does not allocate, and a snapshot allocates only the record. A `Decoded*` property allocates the decoded string of a quoted value on every access. Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Benchmarks --framework net11.0 -- --filter '*' --iterationCount 15 --iterationTime 200 --launchCount 2 --warmupCount 6`.
+Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Benchmarks --framework net11.0 -- --filter '*' --iterationCount 15 --iterationTime 200 --launchCount 2 --warmupCount 6`. Both tables below come from one run of this command.
 
 ```
 BenchmarkDotNet v0.16.0-preview.2, Windows 10 (10.0.19045.7846/22H2/2022Update)
 AMD Ryzen 9 9950X 4.30GHz, 1 CPU, 32 logical and 16 physical cores
-Memory: 61,64 GB Total, 31,05 GB Available
+Memory: 61,64 GB Total, 35,59 GB Available
 .NET SDK 11.0.100
   [Host]     : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
   Job-ZRYWOI : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
@@ -175,14 +204,29 @@ IterationCount=15  IterationTime=200ms  LaunchCount=2
 WarmupCount=6
 ```
 
-| Method                                | Mean      | Error     | StdDev    | Gen0   | Allocated |
-|-------------------------------------- |----------:|----------:|----------:|-------:|----------:|
-| ReadViewProperties                    | 18.956 ns | 0.3872 ns | 0.5299 ns |      - |         - |
-| ReadDecodedViewProperties             | 36.646 ns | 0.5085 ns | 0.6961 ns | 0.0042 |      72 B |
-| GetClientHintsFromHeaders             | 57.352 ns | 0.4389 ns | 0.6295 ns | 0.0052 |      88 B |
-| GetClientHintsFromHeadersWithoutHints | 49.915 ns | 0.7589 ns | 1.1124 ns | 0.0050 |      88 B |
-| GetClientHintsFromContextUncached     | 71.118 ns | 0.5539 ns | 0.8119 ns | 0.0049 |      88 B |
-| GetClientHintsFromContextCached       |  6.052 ns | 0.1073 ns | 0.1538 ns |      - |         - |
+### Reading Client Hints
+
+Reading header values from the view does not allocate, and a snapshot allocates only the record. A `Decoded*` property allocates the decoded string of a quoted value on every access.
+
+| Method                                | Mean      | Error     | StdDev    | Median    | Gen0   | Allocated |
+|-------------------------------------- |----------:|----------:|----------:|----------:|-------:|----------:|
+| ReadViewProperties                    | 18.471 ns | 0.2174 ns | 0.3118 ns | 18.466 ns |      - |         - |
+| ReadDecodedViewProperties             | 36.670 ns | 0.7575 ns | 1.0113 ns | 37.392 ns | 0.0043 |      72 B |
+| GetClientHintsFromHeaders             | 56.993 ns | 0.5361 ns | 0.7688 ns | 56.722 ns | 0.0051 |      88 B |
+| GetClientHintsFromHeadersWithoutHints | 48.849 ns | 0.4774 ns | 0.7146 ns | 48.529 ns | 0.0052 |      88 B |
+| GetClientHintsFromContextUncached     | 71.006 ns | 0.8836 ns | 1.2386 ns | 70.255 ns | 0.0049 |      88 B |
+| GetClientHintsFromContextCached       |  6.196 ns | 0.2700 ns | 0.4041 ns |  6.188 ns |      - |         - |
+
+### Middleware
+
+The middleware benchmarks run pipelines built with `ApplicationBuilder`. They reuse one `DefaultHttpContext`, and the last handler completes synchronously. `UseHttpClientHints()` sets `Accept-CH` and `Accept-CH-Lifetime` and does not allocate in this setup. If a later middleware completes asynchronously, it allocates its async state machine, as in earlier versions. `UseHttpClientHintsFeature()` allocates the 24-byte feature and returns the task of the next middleware directly. Registering the feature changes the revision of the feature collection, so `HttpContext` looks up the features it has cached again. Other servers can allocate more for the registration, see [HttpContext feature](#httpcontext-feature).
+
+| Method                               | Mean     | Error    | StdDev   | Gen0   | Allocated |
+|------------------------------------- |---------:|---------:|---------:|-------:|----------:|
+| UseHttpClientHints                   | 17.60 ns | 0.143 ns | 0.214 ns |      - |         - |
+| UseHttpClientHintsFeature            | 12.25 ns | 0.312 ns | 0.458 ns | 0.0014 |      24 B |
+| UseHttpClientHintsAndFeature         | 36.76 ns | 0.384 ns | 0.526 ns | 0.0013 |      24 B |
+| UseHttpClientHintsFeatureAndReadView | 41.71 ns | 0.400 ns | 0.574 ns | 0.0014 |      24 B |
 
 ## Samples
 

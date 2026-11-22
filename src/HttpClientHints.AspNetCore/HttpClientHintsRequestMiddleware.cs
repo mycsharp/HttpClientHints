@@ -1,4 +1,4 @@
-// Copyright © https://myCSharp.de - all rights reserved
+// Copyright Â© https://myCSharp.de - all rights reserved
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -28,11 +28,12 @@ public class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<Htt
         if (_options.HasResponseHeaders)
         {
             // Set headers directly without additional checks
-            context.Response.Headers["Accept-CH"] = _options.ResponseHeader;
+            IHeaderDictionary headers = context.Response.Headers;
+            headers["Accept-CH"] = _options.ResponseHeader;
 
             if (_options.HasLifetime)
             {
-                context.Response.Headers["Accept-CH-Lifetime"] = _options.LifeTime;
+                headers["Accept-CH-Lifetime"] = _options.LifeTime;
             }
         }
 

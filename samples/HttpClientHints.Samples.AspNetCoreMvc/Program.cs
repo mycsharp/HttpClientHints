@@ -34,6 +34,9 @@ app.UseHttpsRedirection();
 // Register Http Client Hints Middleware
 app.UseHttpClientHints();
 
+// Optional: provide IHttpClientHintsFeature in HttpContext.Features
+app.UseHttpClientHintsFeature();
+
 app.UseRouting();
 
 app.UseAuthorization();

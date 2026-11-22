@@ -84,4 +84,21 @@ public static class HttpClientHintsRegistration
 
         return app;
     }
+
+    /// <summary>
+    /// Adds a middleware that registers <see cref="IHttpClientHintsFeature"/> in <c>HttpContext.Features</c> for every request.
+    /// </summary>
+    /// <param name="app">The application builder.</param>
+    /// <returns>The application builder with the middleware added.</returns>
+    /// <remarks>
+    /// Middleware and handlers added after this call can read the feature. The middleware does not require
+    /// <see cref="AddHttpClientHints"/> or <see cref="UseHttpClientHints"/>. It creates the feature for every request,
+    /// even if no handler reads it, and replaces an <see cref="IHttpClientHintsFeature"/> registered earlier in the pipeline.
+    /// </remarks>
+    public static IApplicationBuilder UseHttpClientHintsFeature(this IApplicationBuilder app)
+    {
+        app.Use(static next => new HttpClientHintsFeatureMiddleware(next).InvokeAsync);
+
+        return app;
+    }
 }

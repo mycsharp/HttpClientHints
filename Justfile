@@ -8,7 +8,7 @@ CONFIG  := "Debug"
 TFM     := "net11.0"
 BENCH_PRJ := "perf/HttpClientHints.Benchmarks/HttpClientHints.Benchmarks.csproj"
 COV_DIR := "TestResults/coverage"
-COV_MIN := "90"
+COV_MIN := "100"
 
 # ===== Default / Help =====
 default: help

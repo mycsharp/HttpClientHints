@@ -88,4 +88,55 @@ public class HttpClientHintsRequestMiddlewareTests
         Assert.Equal("User-Agent", context.Response.Headers["Accept-CH"]);
         Assert.False(context.Response.Headers.ContainsKey("Accept-CH-Lifetime"));
     }
+
+    [Fact]
+    public async Task InvokeAsync_WhenNextThrowsSynchronously_ReturnsFaultedTask()
+    {
+        InvalidOperationException exception = new("next failed");
+        IOptions<HttpClientHintsMiddlewareConfig> options = Options.Create(new HttpClientHintsMiddlewareConfig
+        {
+            ResponseHeader = "User-Agent"
+        });
+        HttpClientHintsRequestMiddleware middleware = new(_ => throw exception, options);
+
+        Task task = middleware.InvokeAsync(new DefaultHttpContext());
+
+        Assert.True(task.IsFaulted);
+        Assert.Same(exception, await Assert.ThrowsAsync<InvalidOperationException>(() => task));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_DoesNotFlowAsyncLocalChangesOfNextMiddlewareToCaller()
+    {
+        AsyncLocal<string?> value = new();
+        IOptions<HttpClientHintsMiddlewareConfig> options = Options.Create(new HttpClientHintsMiddlewareConfig
+        {
+            ResponseHeader = "User-Agent"
+        });
+        HttpClientHintsRequestMiddleware middleware = new(_ =>
+        {
+            value.Value = "set by next";
+            return Task.CompletedTask;
+        }, options);
+
+        Task task = middleware.InvokeAsync(new DefaultHttpContext());
+
+        Assert.Null(value.Value);
+        await task;
+    }
+
+    [Fact]
+    public async Task InvokeAsync_UsesConfigurationChangedAfterConstruction()
+    {
+        HttpClientHintsMiddlewareConfig config = new() { ResponseHeader = string.Empty };
+        HttpClientHintsRequestMiddleware middleware = new(static _ => Task.CompletedTask, Options.Create(config));
+        config.ResponseHeader = "Sec-CH-UA-Mobile";
+        config.LifeTime = "60";
+        DefaultHttpContext context = new();
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal("Sec-CH-UA-Mobile", context.Response.Headers["Accept-CH"]);
+        Assert.Equal("60", context.Response.Headers["Accept-CH-Lifetime"]);
+    }
 }

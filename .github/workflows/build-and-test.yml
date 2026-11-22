@@ -72,7 +72,7 @@ jobs:
 
       - name: Check code coverage
         shell: pwsh
-        run: ./eng/Assert-CodeCoverage.ps1 -ResultsDirectory TestResults -Threshold 90
+        run: ./eng/Assert-CodeCoverage.ps1 -ResultsDirectory TestResults -Threshold 100
 
       - name: Upload test results
         if: always() && inputs.upload-test-results

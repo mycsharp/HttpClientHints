@@ -86,8 +86,8 @@ jobs:
             **/TestResults/**/*.trx
             **/TestResults/**/*.cobertura.xml
 
-      - name: Pack NuGet packages
-        if: inputs.create-pack
+      # Every build packs: package validation compares the API with the baseline version on NuGet.org
+      - name: Pack and validate NuGet packages
         run: dotnet pack --configuration ${{ inputs.configuration }} --no-build --output ./artifacts /p:PackageVersion=${{ steps.nbgv.outputs.SemVer2 }}
 
       - name: Upload NuGet packages

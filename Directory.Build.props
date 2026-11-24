@@ -54,7 +54,13 @@
     <PackageReleaseNotes>https://github.com/mycsharp/HttpClientHints/releases</PackageReleaseNotes>
     <!-- NuGet splits tags at spaces, so each tag is a single word -->
     <PackageTags>client-hints;user-agent-client-hints;user-agent;sec-ch-ua;accept-ch;aspnetcore;http;browser;platform;mobile</PackageTags>
-    <PackageIcon>httpclienthints-logo.png</PackageIcon>
+    <PackageIcon>httpclienthints-icon.png</PackageIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Package validation">
+    <!-- dotnet pack compares the API with the published baseline; intended breaking changes are listed in CompatibilitySuppressions.xml -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>3.3.5</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <PropertyGroup Label="Deterministic CI builds">
@@ -62,9 +68,9 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <!-- Ensure the repository root res/httpclienthints-logo.png is packed into NuGet packages -->
+  <!-- Pack the 128x128 icon from res/ into the NuGet packages; the readme uses the 512x512 logo -->
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)res\httpclienthints-logo.png" Pack="true" PackagePath="" />
+    <None Include="$(MSBuildThisFileDirectory)res\httpclienthints-icon.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(IsBenchmarkProject)' == 'true'">

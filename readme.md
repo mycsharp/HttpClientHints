@@ -218,6 +218,8 @@ dotnet test -c Release --no-build
 
 Line and branch coverage of both packages must stay at 100 %. CI collects coverage on every build and fails below this threshold. Run the same check locally with `just test-cov`, or call `./eng/Assert-CodeCoverage.ps1` after a test run with `--coverage --coverage-output-format cobertura`.
 
+CI also checks the formatting with `dotnet format --verify-no-changes`. Run the same check locally with `just format-check`.
+
 ## Release
 
 Every push to `main` builds and tests the solution and creates a draft GitHub release with the NuGet packages. Publishing that release runs `.github/workflows/release-publish.yml`, which pushes the packages to NuGet.org with [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing). The workflow exchanges a GitHub OIDC token for a NuGet API key that is valid for one hour, so the repository stores no NuGet API key.

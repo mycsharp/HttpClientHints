@@ -52,7 +52,7 @@ jobs:
           global-json-file: ./global.json
 
       - name: Calculate Version with NBGV
-        uses: dotnet/nbgv@master
+        uses: dotnet/nbgv@v0.5.2
         id: nbgv
         with:
           setAllVars: true
@@ -63,6 +63,9 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore
+
+      - name: Check formatting
+        run: dotnet format --verify-no-changes --no-restore --verbosity minimal
 
       - name: Build
         run: dotnet build --configuration ${{ inputs.configuration }} --no-restore /p:Version=${{ steps.nbgv.outputs.SemVer2 }}

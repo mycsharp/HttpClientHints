@@ -21,7 +21,8 @@
 - Every C# file starts with `// Copyright © https://myCSharp.de - all rights reserved`.
 - Do not use reflection or dynamic code generation; both packages are `IsAotCompatible`.
 - Reading Client Hints is on the request path: avoid allocations, measure changes with the benchmarks.
-- Public API is part of the NuGet packages: removing or changing members is a breaking change and needs a major version.
+- Public API is part of the NuGet packages: removing or changing members is a breaking change and needs a major version. `dotnet pack` validates the API against `PackageValidationBaselineVersion`; list intended breaking changes in `CompatibilitySuppressions.xml` with `-p:ApiCompatGenerateSuppressionFile=true`.
+- Header values are HTTP Structured Fields (RFC 9651). Decode them with `HttpClientHintsInterpreter`, which uses the internal `StructuredFieldReader`.
 
 ## Documentation
 

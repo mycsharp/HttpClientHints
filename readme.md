@@ -6,7 +6,7 @@
 
 **Reading HTTP Client Hints with .NET**
 
-Requests Client Hints with `Accept-CH` and reads the browser, platform, architecture, model and mobile hints in ASP.NET Core.
+Requests Client Hints with `Accept-CH` and reads the browser, platform, architecture, device and mobile hints in ASP.NET Core.
 
 [![Build](https://img.shields.io/github/actions/workflow/status/mycsharp/HttpClientHints/main-build.yml?branch=main&logo=githubactions&logoColor=white&label=build)](https://github.com/mycsharp/HttpClientHints/actions/workflows/main-build.yml)
 [![Coverage: 100% line and branch coverage, enforced in CI](https://img.shields.io/badge/coverage-100%25-brightgreen)](#build-and-test)
@@ -39,63 +39,160 @@ The NuGet packages target .NET 8, 9, 10, and 11. Building the solution requires 
 
 User-Agent Client Hints are intended to replace the `User-Agent` header (see [mycsharp/HttpUserAgentParser](https://github.com/mycsharp/HttpUserAgentParser)) in the long term and expose less information by default. Not every browser sends them yet, so they are not a complete alternative to the `User-Agent` header today.
 
-Unlike the `User-Agent` header, browsers send most Client Hints only after the server requests them with the `Accept-CH` response header, and only over HTTPS. A few hints, such as `Sec-CH-UA`, `Sec-CH-UA-Mobile`, and `Sec-CH-UA-Platform`, are sent with every request.
+Browsers send Client Hints only to secure origins, that is over HTTPS and to `localhost`. The low-entropy hints `Sec-CH-UA`, `Sec-CH-UA-Mobile`, and `Sec-CH-UA-Platform` are part of every request. All other hints have high entropy: a browser sends them only after a response of the site has requested them with the `Accept-CH` header, so the first request to a site does not contain them. With `Critical-CH`, a browser that supports it repeats the first request with selected hints, see [Options](#options).
 
 ## Usage
 
-The basic idea behind the implementation of `MyCSharp.HttpClientHints` is to have as little impact as possible on performance and middleware.
-The options are therefore registered solely via a simple configuration
+Configure the hints to request and add the middleware that sets the `Accept-CH` response header:
 
 ```csharp
-// Add Http Client Hint Options
 builder.Services.AddHttpClientHints(options =>
-  {
-      options.UserAgent = true;
-      options.Platform = true;
-      options.Architecture = true;
-      options.Device = true;
-      options.Mobile = true;
-      options.Lifetime = TimeSpan.FromDays(31);
-  });
+{
+    options.Platform = true;        // Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version
+    options.FullVersionList = true; // Sec-CH-UA-Full-Version-List
+});
 ```
 
-The corresponding headers are set by middleware, which must also be registered.
-
 ```csharp
-...
 app.UseHttpsRedirection();
 
-// Register Http Client Hints Middleware
 app.UseHttpClientHints();
 
 app.UseRouting();
-...
 ```
 
-The client hints are not read by a separate dependency injection registration, but as an extension method to the header collection or to the HttpContext object. Optionally, a separate middleware also provides them as an `HttpContext` feature, see [HttpContext feature](#httpcontext-feature).
+Without options, `Accept-CH` requests only `Sec-CH-UA` and `Sec-CH-UA-Mobile`, see [Options](#options). The middleware only sets response headers. Reading the hints of a request does not depend on it.
 
-```csharp
-using MyCSharp.HttpClientHints.AspNetCore;
-
-HttpClientHints clientHints = HttpClientHintsHttpContextExtensions.GetClientHints(httpContext);
-```
-
-There are two ways to read the Client Hints of a request:
+Read the Client Hints with the extension methods for `HttpContext` and `IHeaderDictionary` in `MyCSharp.HttpClientHints.AspNetCore`:
 
 | API | Returns | Behavior |
 | --- | --- | --- |
 | `httpContext.GetClientHints()` | `HttpClientHints` record | Reads the headers on the first call and returns the same instance for every further call during the request. |
 | `httpContext.GetClientHintsView()` | `HttpClientHintsView` struct | Reads the current request headers on every property access. Creating the view and reading header values do not allocate. |
 
-`GetClientHints()` and `GetClientHintsView()` are also available on `IHeaderDictionary`. `GetClientHints()` on headers builds a new record on every call.
+`GetClientHints()` and `GetClientHintsView()` are also available on `IHeaderDictionary`. `GetClientHints()` on headers builds a new record on every call. A separate middleware also provides the hints as an `HttpContext` feature, see [HttpContext feature](#httpcontext-feature).
 
 ```csharp
-HttpClientHints clientHints = httpContext.GetClientHints();
+using MyCSharp.HttpClientHints;
+using MyCSharp.HttpClientHints.AspNetCore;
+
+HttpClientHints hints = httpContext.GetClientHints();
+string? platform = hints.DecodedPlatform; // Windows
+
 HttpClientHintsView view = httpContext.GetClientHintsView();
 bool? isMobile = view.Mobile;
 ```
 
-Since potentially all client hints are optional, all properties are potentially nullable, which means that the client has not provided this data.
+A property is `null` if the request does not contain the header. `HttpClientHints.Headers` references all request headers, including headers without a property.
+
+## Options
+
+`HttpClientHintsOptions` selects the hints that `Accept-CH` requests:
+
+| Option | Requested hints | Entropy | Default |
+| --- | --- | --- | --- |
+| `UserAgent` | `Sec-CH-UA` | low | `true` |
+| `Mobile` | `Sec-CH-UA-Mobile` | low | `true` |
+| `Platform` | `Sec-CH-UA-Platform`, `Sec-CH-UA-Platform-Version` | low, high | `false` |
+| `Architecture` | `Sec-CH-UA-Arch`, `Sec-CH-UA-Bitness`, `Sec-CH-UA-WoW64` | high | `false` |
+| `Device` | `Sec-CH-UA-Model`, `Sec-CH-UA-Form-Factors` | high | `false` |
+| `FullVersionList` | `Sec-CH-UA-Full-Version-List` | high | `false` |
+
+Browsers send the low-entropy hints with every request, also if `UserAgent` or `Mobile` is `false`. The options for high-entropy hints are `false` by default, so an application requests only the hints it enables.
+
+| Option | Effect |
+| --- | --- |
+| `Additional` | Further hints for `Accept-CH`, for example `Sec-CH-Prefers-Color-Scheme`. |
+| `Critical` | Hints for the `Critical-CH` response header. They are also added to `Accept-CH` and `Vary`. A browser that supports `Critical-CH` and did not send one of these hints repeats the request once with the hint. |
+| `Vary` | Adds all requested hints to the `Vary` response header. Enable it if responses that depend on the hints can be cached. `false` by default. |
+| `Lifetime` | Obsolete. Sets the `Accept-CH-Lifetime` header, which was removed from the Client Hints specification and which browsers ignore. |
+
+`AddHttpClientHints` reads the options once. Empty entries and duplicates in `Additional` and `Critical` are ignored; duplicates are compared ignoring case. The middleware appends its `Vary` values to a `Vary` header that was set before it.
+
+```csharp
+builder.Services.AddHttpClientHints(options =>
+{
+    options.Platform = true;
+    options.Architecture = true;
+    options.Device = true;
+    options.FullVersionList = true;
+    options.Additional = ["Sec-CH-Prefers-Color-Scheme"];
+    options.Critical = ["Sec-CH-UA-Platform-Version"];
+});
+```
+
+Every response then contains these headers:
+
+```http
+Accept-CH: Sec-CH-UA, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version, Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-WoW64, Sec-CH-UA-Model, Sec-CH-UA-Form-Factors, Sec-CH-UA-Mobile, Sec-CH-UA-Full-Version-List, Sec-CH-Prefers-Color-Scheme
+Critical-CH: Sec-CH-UA-Platform-Version
+Vary: Sec-CH-UA-Platform-Version
+```
+
+## Decoded values
+
+Client Hints are HTTP Structured Fields ([RFC 9651](https://www.rfc-editor.org/rfc/rfc9651.html)). The properties without prefix return the header value as sent, for example `"Windows"` including the quotes. The `Decoded*` properties, `Mobile`, and `Wow64` return the decoded value:
+
+| Request header | Property | Decoded property | Decoded type |
+| --- | --- | --- | --- |
+| `User-Agent` | `UserAgent` | | |
+| `Sec-CH-UA` | `UA` | `DecodedUA` | `IReadOnlyList<HttpClientHintsBrand>?` |
+| `Sec-CH-UA-Full-Version-List` | `FullVersionList` | `DecodedFullVersionList` | `IReadOnlyList<HttpClientHintsBrand>?` |
+| `Sec-CH-UA-Platform` | `Platform` | `DecodedPlatform` | `string?` |
+| `Sec-CH-UA-Platform-Version` | `PlatformVersion` | `DecodedPlatformVersion` | `string?` |
+| `Sec-CH-UA-Arch` | `Architecture` | `DecodedArchitecture` | `string?` |
+| `Sec-CH-UA-Bitness` | `Bitness` | `DecodedBitness` | `string?` |
+| `Sec-CH-UA-Model` | `Model` | `DecodedModel` | `string?` |
+| `Sec-CH-UA-Form-Factors` | `FormFactors` | `DecodedFormFactors` | `IReadOnlyList<string>?` |
+| `Sec-CH-UA-Mobile` | | `Mobile` | `bool?` |
+| `Sec-CH-UA-WoW64` | | `Wow64` | `bool?` |
+
+The properties are available on `HttpClientHints` and `HttpClientHintsView`. The `Decoded*` properties decode the value on every access and store nothing, so reading the value as sent or building a snapshot costs nothing extra. Store the decoded value in a local variable if you need it more than once.
+
+```csharp
+HttpClientHints hints = httpContext.GetClientHints();
+string? platformHeader = hints.Platform;   // "Windows", including the two quote characters
+bool isWindows = hints.DecodedPlatform == "Windows";
+```
+
+`HttpClientHintsInterpreter` provides the decoders, also for other headers:
+
+| Method | Structured Field type | Example |
+| --- | --- | --- |
+| `DecodeStructuredString` | String | `"Windows"` → `Windows` |
+| `DecodeStructuredBoolean` | Boolean | `?1` → `true` |
+| `DecodeStructuredStringList` | List of strings | `"Desktop", "XR"` → `Desktop`, `XR` |
+| `DecodeBrandList` | List of strings with the parameter `v` | `"Chromium";v="142"` → `Chromium`, `142` |
+| `IsMobile` | Boolean | Same as `DecodeStructuredBoolean` |
+
+- An absent header yields `null`. An empty header yields an empty list for the list decoders.
+- Leading and trailing spaces and tabs are ignored.
+- A malformed value yields `null`, for example an unterminated string, a list with a trailing comma, or a list member that is not a string.
+- `DecodeStructuredString` returns an unquoted value as sent, and a quoted empty value such as `""` as `string.Empty`.
+- A string, a boolean, or a member of a string list with parameters yields `null`, for example `"Windows";a=1`. Brand lists ignore all parameters except `v`.
+
+### Brand lists
+
+`DecodedUA` and `DecodedFullVersionList` return the brands of `Sec-CH-UA` and `Sec-CH-UA-Full-Version-List` in the order of the header. `HttpClientHintsBrand` has these properties:
+
+| Property | Value |
+| --- | --- |
+| `Brand` | The brand, for example `Google Chrome` |
+| `Version` | The value of the parameter `v`: the major version in `Sec-CH-UA`, the full version in `Sec-CH-UA-Full-Version-List`. `null` if the member has no `v` parameter with a string value. |
+| `IsGrease` | `true` for the brand with a changing name that Chromium-based browsers add, so that servers do not depend on a fixed list of brands |
+
+`IsGrease` recognizes brands that consist of `Not`, one of the characters ` ()-./:;=?_`, `A`, one of these characters, and `Brand`, for example `Not_A Brand` or `Not)A;Brand`. Leading spaces are ignored.
+
+```csharp
+// Sec-CH-UA-Full-Version-List: "Chromium";v="142.0.7444.60", "Google Chrome";v="142.0.7444.60", "Not_A Brand";v="99.0.0.0"
+foreach (HttpClientHintsBrand brand in hints.DecodedFullVersionList ?? [])
+{
+    if (!brand.IsGrease)
+    {
+        Console.WriteLine($"{brand.Brand} {brand.Version}"); // Chromium 142.0.7444.60, Google Chrome 142.0.7444.60
+    }
+}
+```
 
 ## HttpContext feature
 
@@ -122,73 +219,9 @@ bool? isMobile = feature?.View.Mobile;
 
 `Snapshot` keeps the values read on the first access. `Snapshot.Headers` references the request headers, so it shows later changes to them.
 
-The middleware registers the feature for every request, whether or not `Accept-CH` is configured, because browsers send some Client Hints such as `Sec-CH-UA-Mobile` without a request. The registration replaces an `IHttpClientHintsFeature` registered earlier in the pipeline. Register your own implementation after `app.UseHttpClientHintsFeature()`. The feature references the `HttpContext`, so do not keep it beyond the request.
+The middleware registers the feature for every request, whether or not `Accept-CH` is configured, because browsers send the low-entropy hints without a request. The registration replaces an `IHttpClientHintsFeature` registered earlier in the pipeline. Register your own implementation after `app.UseHttpClientHintsFeature()`. The feature references the `HttpContext`, so do not keep it beyond the request.
 
-Without `UseHttpClientHintsFeature()`, requests have no additional cost, and `Features.Get<IHttpClientHintsFeature>()` returns `null`. The extension methods work in both cases. With it, the feature is created for every request, even if no handler reads it. In the [benchmark](#benchmark), which reuses one `DefaultHttpContext`, the feature middleware takes about 12 ns and allocates 24 B per request. Together with `UseHttpClientHints()`, the pipeline takes about 19 ns more than `UseHttpClientHints()` alone, because `HttpContext` looks up its cached features again after the registration. The cost depends on the server: in a test with Kestrel on .NET 11, the registration allocated 24 B or 112 B per request, depending on whether Kestrel reused its request object.
-
-## Decoded values
-
-Browsers send `Sec-CH-UA-Platform`, `Sec-CH-UA-Platform-Version`, `Sec-CH-UA-Arch`, and `Sec-CH-UA-Model` as quoted strings, for example `Sec-CH-UA-Platform: "Windows"`. `Platform`, `PlatformVersion`, `Architecture`, and `Model` return these header values as sent, including the quotes. The matching `Decoded*` properties return the value without quotes and escapes.
-
-| Request header | Property | Decoded property |
-| --- | --- | --- |
-| `Sec-CH-UA-Platform` | `Platform` | `DecodedPlatform` |
-| `Sec-CH-UA-Platform-Version` | `PlatformVersion` | `DecodedPlatformVersion` |
-| `Sec-CH-UA-Arch` | `Architecture` | `DecodedArchitecture` |
-| `Sec-CH-UA-Model` | `Model` | `DecodedModel` |
-
-```csharp
-HttpClientHints hints = httpContext.GetClientHints();
-string? platformHeader = hints.Platform;   // "Windows", including the two quote characters
-bool isWindows = hints.DecodedPlatform == "Windows";
-```
-
-The `Decoded*` properties are available on `HttpClientHints` and `HttpClientHintsView`. They decode the value on every access and store nothing, so reading `Platform` or building a snapshot costs nothing extra. Store the decoded value in a local variable if you need it more than once. `HttpClientHintsInterpreter.DecodeStructuredString` decodes any other header value of this type.
-
-An absent header yields `null`. A quoted empty value such as `Sec-CH-UA-Model: ""` decodes to `string.Empty`. Unquoted values pass through as supplied. A malformed quoted value yields `null`. Parameters are not supported: `Sec-CH-UA-Platform: "Windows";a=1` also yields `null`. [RFC 9651 § 4.2.5](https://www.rfc-editor.org/rfc/rfc9651.html#section-4.2.5)
-
-`UA` and `FullVersionList` expose serialized brand lists. The `Headers` collection provides access to all original header values.
-
-## Customization
-
-Each option requests these headers with `Accept-CH`:
-
-| Option | Requested headers |
-| --- | --- |
-| `UserAgent` | `User-Agent`, `Sec-CH-UA` |
-| `Platform` | `Sec-CH-UA-Platform`, `Sec-CH-UA-Platform-Version` |
-| `Architecture` | `Sec-CH-UA-Arch`, `Sec-CH-UA-Bitness` |
-| `Device` | `Sec-CH-UA-Model` |
-| `Mobile` | `Sec-CH-UA-Mobile` |
-
-The `Additional` property can be used to request further headers. For example, `FullVersionList` stays `null` unless you request `Sec-CH-UA-Full-Version-List`.
-
-```csharp
-// Add Http Client Hint Options
-builder.Services.AddHttpClientHints(options =>
-  {
-      options.UserAgent = true;
-      options.Platform = true;
-      options.Architecture = true;
-      options.Device = true;
-      options.Mobile = true;
-      options.Additional = ["Sec-CH-UA-Full-Version-List"];
-      options.Lifetime = TimeSpan.FromDays(31);
-  });
-```
-
-The `HttpClientHints` object has a reference to all headers received, making it very easy to read them out. This includes headers without a property, such as `Sec-CH-UA-Bitness`. Optionally, you can also inherit from the `HttpClientHints` class itself to simplify access.
-
-```csharp
-HttpClientHints clientHints = HttpClientHintsHttpContextExtensions.GetClientHints(httpContext);
-clientHints.Headers.TryGetValue("Sec-CH-UA-Bitness", out StringValues bitness);
-```
-
-Like the platform, `Sec-CH-UA-Bitness` is sent as a quoted string such as `"64"`. `HttpClientHintsInterpreter.DecodeStructuredString` removes the quotes from any header value of this type.
-
-```csharp
-string? decodedBitness = HttpClientHintsInterpreter.DecodeStructuredString(bitness); // 64
-```
+Without `UseHttpClientHintsFeature()`, requests have no additional cost, and `Features.Get<IHttpClientHintsFeature>()` returns `null`. The extension methods work in both cases. With it, the feature is created for every request, even if no handler reads it. In the [benchmark](#benchmark), which reuses one `DefaultHttpContext`, the feature middleware takes about 12 ns and allocates 24 B per request. Together with `UseHttpClientHints()`, the pipeline takes about 21 ns more than `UseHttpClientHints()` alone, because `HttpContext` looks up its cached features again after the registration. The cost depends on the server: in a test with Kestrel on .NET 11, the registration allocated 24 B or 112 B per request, depending on whether Kestrel reused its request object.
 
 ## Native AOT and trimming
 
@@ -200,8 +233,8 @@ dotnet publish tests/HttpClientHints.NativeAot.Smoke -c Release -f net11.0 -r li
 
 The app roots both library assemblies, so the trimmer and the AOT compiler analyze all of their code, and the publish fails on any trimming or AOT warning. At runtime it checks:
 
-- decoding of quoted header values and of `Sec-CH-UA-Mobile`
-- the `Accept-CH` and `Accept-CH-Lifetime` response headers of `UseHttpClientHints()`
+- decoding of strings, booleans, string lists, and brand lists, including the detection of GREASE brands
+- the `Accept-CH`, `Critical-CH`, and `Vary` response headers of `UseHttpClientHints()`
 - `GetClientHints()` and `GetClientHintsView()` on `HttpContext` and `IHeaderDictionary`
 - `IHttpClientHintsFeature` registered by `UseHttpClientHintsFeature()`
 
@@ -209,16 +242,18 @@ Publishing with Native AOT requires the [platform toolchain](https://learn.micro
 
 ## Build and test
 
-Use the .NET 11 SDK to build the solution. The .NET 11 build uses `Microsoft.Extensions.Primitives` from the shared runtime. Install the corresponding runtimes to run the full test suite.
+Use the .NET 11 SDK to build the solution. The .NET 11 build uses `Microsoft.Extensions.Primitives` from the shared runtime. Install the .NET and ASP.NET Core runtimes 8, 9, and 10 to run the full test suite.
 
 ```shell
 dotnet build -c Release
 dotnet test -c Release --no-build
 ```
 
-Line and branch coverage of both packages must stay at 100 %. CI collects coverage on every build and fails below this threshold. Run the same check locally with `just test-cov`, or call `./eng/Assert-CodeCoverage.ps1` after a test run with `--coverage --coverage-output-format cobertura`.
+Line and branch coverage of both packages must stay at 100 %. CI collects coverage on every build and fails below this threshold. `./eng/Assert-CodeCoverage.ps1` reads the Cobertura report of every test project and target framework and takes, for every line, the highest coverage of any report, because the report that `dotnet test` merges keeps the hits of only one test project for a package. Run the same check locally with `just test-cov`, or call the script after a test run with `--coverage --coverage-output-format cobertura`.
 
 CI also checks the formatting with `dotnet format --verify-no-changes`. Run the same check locally with `just format-check`.
+
+`dotnet pack` validates the packages against the version in `PackageValidationBaselineVersion` in `Directory.Build.props` and fails on API breaking changes. Intended breaking changes are listed in the `CompatibilitySuppressions.xml` file of the package; generate it with `dotnet pack -p:ApiCompatGenerateSuppressionFile=true`. CI packs in every build, also for pull requests.
 
 ## Release
 
@@ -227,10 +262,12 @@ Every push to `main` builds and tests the solution and creates a draft GitHub re
 To publish the packages of an existing release again, run the workflow manually with the release tag:
 
 ```shell
-gh workflow run release-publish.yml -f tag=v3.2.3
+gh workflow run release-publish.yml -f tag=v3.3.5
 ```
 
 The workflow requires a Trusted Publishing policy on NuGet.org for the `MyCSharp` organization with the repository `mycsharp/HttpClientHints` and the workflow file `release-publish.yml`, and the repository secret `NUGET_USER` with the NuGet.org profile name of the member who created the policy.
+
+After a release, set `PackageValidationBaselineVersion` to the released version and delete the `CompatibilitySuppressions.xml` files.
 
 ## Benchmark
 
@@ -239,7 +276,7 @@ Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Be
 ```
 BenchmarkDotNet v0.16.0-preview.2, Windows 10 (10.0.19045.7846/22H2/2022Update)
 AMD Ryzen 9 9950X 4.30GHz, 1 CPU, 32 logical and 16 physical cores
-Memory: 61,64 GB Total, 35,59 GB Available
+Memory: 61,64 GB Total, 36,39 GB Available
 .NET SDK 11.0.100
   [Host]     : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
   Job-ZRYWOI : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
@@ -250,31 +287,33 @@ WarmupCount=6
 
 ### Reading Client Hints
 
-Reading header values from the view does not allocate, and a snapshot allocates only the record. A `Decoded*` property allocates the decoded string of a quoted value on every access.
+Reading header values from the view does not allocate, and a snapshot allocates only the record. A `Decoded*` property decodes on every access: it allocates the decoded string of a quoted value, and for lists the list and its strings. `ReadDecodedBrandLists` decodes `Sec-CH-UA` and `Sec-CH-UA-Full-Version-List` with three brands each.
 
-| Method                                | Mean      | Error     | StdDev    | Median    | Gen0   | Allocated |
-|-------------------------------------- |----------:|----------:|----------:|----------:|-------:|----------:|
-| ReadViewProperties                    | 18.471 ns | 0.2174 ns | 0.3118 ns | 18.466 ns |      - |         - |
-| ReadDecodedViewProperties             | 36.670 ns | 0.7575 ns | 1.0113 ns | 37.392 ns | 0.0043 |      72 B |
-| GetClientHintsFromHeaders             | 56.993 ns | 0.5361 ns | 0.7688 ns | 56.722 ns | 0.0051 |      88 B |
-| GetClientHintsFromHeadersWithoutHints | 48.849 ns | 0.4774 ns | 0.7146 ns | 48.529 ns | 0.0052 |      88 B |
-| GetClientHintsFromContextUncached     | 71.006 ns | 0.8836 ns | 1.2386 ns | 70.255 ns | 0.0049 |      88 B |
-| GetClientHintsFromContextCached       |  6.196 ns | 0.2700 ns | 0.4041 ns |  6.188 ns |      - |         - |
+| Method                                | Mean       | Error     | StdDev    | Gen0   | Allocated |
+|-------------------------------------- |-----------:|----------:|----------:|-------:|----------:|
+| ReadViewProperties                    |  20.448 ns | 0.1284 ns | 0.1800 ns |      - |         - |
+| ReadDecodedViewProperties             |  39.054 ns | 0.2218 ns | 0.2961 ns | 0.0043 |      72 B |
+| ReadDecodedBrandLists                 | 273.977 ns | 3.2699 ns | 4.7930 ns | 0.0440 |     744 B |
+| GetClientHintsFromHeaders             |  83.555 ns | 0.7852 ns | 1.1509 ns | 0.0062 |     104 B |
+| GetClientHintsFromHeadersWithoutHints |  70.374 ns | 0.6799 ns | 0.9307 ns | 0.0060 |     104 B |
+| GetClientHintsFromContextUncached     |  97.277 ns | 1.4458 ns | 2.1193 ns | 0.0061 |     104 B |
+| GetClientHintsFromContextCached       |   5.910 ns | 0.0533 ns | 0.0764 ns |      - |         - |
 
 ### Middleware
 
-The middleware benchmarks run pipelines built with `ApplicationBuilder`. They reuse one `DefaultHttpContext`, and the last handler completes synchronously. `UseHttpClientHints()` sets `Accept-CH` and `Accept-CH-Lifetime` and does not allocate in this setup. If a later middleware completes asynchronously, it allocates its async state machine. `UseHttpClientHintsFeature()` allocates the 24-byte feature and returns the task of the next middleware directly. Registering the feature changes the revision of the feature collection, so `HttpContext` looks up the features it has cached again. Other servers can allocate more for the registration, see [HttpContext feature](#httpcontext-feature).
+The middleware benchmarks run pipelines built with `ApplicationBuilder`. They reuse one `DefaultHttpContext`, and the last handler completes synchronously. `UseHttpClientHints()` is configured with `Platform = true`, sets `Accept-CH`, and does not allocate in this setup. If a later middleware completes asynchronously, it allocates its async state machine. `UseHttpClientHintsWithCriticalAndVary` also sets `Critical-CH` and appends to `Vary`; it removes the `Vary` header before every call. `UseHttpClientHintsFeature()` allocates the 24-byte feature and returns the task of the next middleware directly. Registering the feature changes the revision of the feature collection, so `HttpContext` looks up the features it has cached again. Other servers can allocate more for the registration, see [HttpContext feature](#httpcontext-feature).
 
-| Method                               | Mean     | Error    | StdDev   | Gen0   | Allocated |
-|------------------------------------- |---------:|---------:|---------:|-------:|----------:|
-| UseHttpClientHints                   | 17.60 ns | 0.143 ns | 0.214 ns |      - |         - |
-| UseHttpClientHintsFeature            | 12.25 ns | 0.312 ns | 0.458 ns | 0.0014 |      24 B |
-| UseHttpClientHintsAndFeature         | 36.76 ns | 0.384 ns | 0.526 ns | 0.0013 |      24 B |
-| UseHttpClientHintsFeatureAndReadView | 41.71 ns | 0.400 ns | 0.574 ns | 0.0014 |      24 B |
+| Method                                | Mean     | Error    | StdDev   | Median   | Gen0   | Allocated |
+|-------------------------------------- |---------:|---------:|---------:|---------:|-------:|----------:|
+| UseHttpClientHints                    | 12.66 ns | 0.152 ns | 0.223 ns | 12.59 ns |      - |         - |
+| UseHttpClientHintsWithCriticalAndVary | 33.08 ns | 0.324 ns | 0.484 ns | 32.95 ns |      - |         - |
+| UseHttpClientHintsFeature             | 11.82 ns | 0.268 ns | 0.393 ns | 11.67 ns | 0.0014 |      24 B |
+| UseHttpClientHintsAndFeature          | 34.05 ns | 1.696 ns | 2.378 ns | 32.52 ns | 0.0014 |      24 B |
+| UseHttpClientHintsFeatureAndReadView  | 45.81 ns | 2.603 ns | 3.815 ns | 42.71 ns | 0.0013 |      24 B |
 
 ## Samples
 
-- [ASP.NET Core MVC Sample](./samples/HttpClientHints.Samples.AspNetCoreMvc/)
+- [ASP.NET Core MVC Sample](./samples/HttpClientHints.Samples.AspNetCoreMvc/): enables all options for high-entropy hints, marks two hints as critical, and shows every hint as sent and decoded, and the brands.
 
 ## Maintained
 

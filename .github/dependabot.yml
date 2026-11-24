@@ -1,0 +1,40 @@
+# Dependabot version updates
+# https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    ignore:
+      # The packages reference the lowest version that supports .NET 8. A newer version would raise
+      # the minimum version for every consumer. NuGetAudit reports vulnerable versions in the build.
+      - dependency-name: Microsoft.Extensions.Primitives
+    groups:
+      analyzers:
+        patterns:
+          - Roslynator.*
+          - Meziantou.Analyzer
+      tests:
+        patterns:
+          - Microsoft.Testing.*
+          - xunit.*
+      benchmarks:
+        patterns:
+          - BenchmarkDotNet*
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      github-actions:
+        patterns:
+          - "*"

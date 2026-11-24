@@ -19,7 +19,9 @@ public class HttpClientHintsHttpContextExtensionsTests
             { "Sec-CH-UA-Platform", new StringValues("\"Windows\"") },
             { "Sec-CH-UA-Platform-Version", new StringValues("\"19.0.0\"") },
             { "Sec-CH-UA-Arch", new StringValues("\"x86\"") },
-            { "Sec-CH-UA-Bitness", new StringValues("64") },
+            { "Sec-CH-UA-Bitness", new StringValues("\"64\"") },
+            { "Sec-CH-UA-WoW64", new StringValues("?0") },
+            { "Sec-CH-UA-Form-Factors", new StringValues("\"Mobile\", \"Tablet\"") },
             { "Sec-CH-UA-Full-Version-List", new StringValues("\"Chromium\";v=\"138.0.7204.97\"") },
             { "Sec-CH-UA-Model", new StringValues("\"\"") },
             { "Sec-CH-UA-Mobile", new StringValues("?1") }
@@ -39,7 +41,14 @@ public class HttpClientHintsHttpContextExtensionsTests
         Assert.Equal("\"\"", clientHints.Model);
         Assert.Equal(string.Empty, clientHints.DecodedModel);
         Assert.Equal("\"Chromium\";v=\"138.0.7204.97\"", clientHints.FullVersionList);
+        Assert.Equal([new HttpClientHintsBrand("Chromium", "138.0.7204.97")], clientHints.DecodedFullVersionList);
         Assert.Equal("\"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"", clientHints.UA);
+        Assert.Equal([new HttpClientHintsBrand("Chromium", "138"), new HttpClientHintsBrand("Google Chrome", "138")], clientHints.DecodedUA);
+        Assert.Equal("\"64\"", clientHints.Bitness);
+        Assert.Equal("64", clientHints.DecodedBitness);
+        Assert.False(clientHints.Wow64);
+        Assert.Equal("\"Mobile\", \"Tablet\"", clientHints.FormFactors);
+        Assert.Equal(["Mobile", "Tablet"], clientHints.DecodedFormFactors);
         Assert.True(clientHints.Mobile);
         Assert.Equal(headers, clientHints.Headers);
     }
@@ -64,7 +73,12 @@ public class HttpClientHintsHttpContextExtensionsTests
         Assert.Null(clientHints.Model);
         Assert.Null(clientHints.DecodedModel);
         Assert.Null(clientHints.FullVersionList);
+        Assert.Null(clientHints.DecodedFullVersionList);
         Assert.Null(clientHints.UA);
+        Assert.Null(clientHints.DecodedUA);
+        Assert.Null(clientHints.Bitness);
+        Assert.Null(clientHints.Wow64);
+        Assert.Null(clientHints.FormFactors);
         Assert.Null(clientHints.Mobile);
         Assert.Equal(headers, clientHints.Headers);
     }
@@ -115,6 +129,29 @@ public class HttpClientHintsHttpContextExtensionsTests
         Assert.Equal("arm", view.DecodedArchitecture);
         Assert.Equal("\"Pixel \\\"9\\\"\"", view.Model);
         Assert.Equal("Pixel \"9\"", view.DecodedModel);
+    }
+
+    [Fact]
+    public void GetClientHintsView_DecodesBitnessWow64FormFactorsAndBrandLists()
+    {
+        HeaderDictionary headers = new()
+        {
+            ["Sec-CH-UA"] = "\"Chromium\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            ["Sec-CH-UA-Full-Version-List"] = "\"Chromium\";v=\"142.0.7444.60\"",
+            ["Sec-CH-UA-Bitness"] = "\"32\"",
+            ["Sec-CH-UA-WoW64"] = "?1",
+            ["Sec-CH-UA-Form-Factors"] = "\"Desktop\"",
+        };
+
+        HttpClientHintsView view = headers.GetClientHintsView();
+
+        Assert.Equal([new HttpClientHintsBrand("Chromium", "142"), new HttpClientHintsBrand("Not_A Brand", "99")], view.DecodedUA);
+        Assert.Equal([new HttpClientHintsBrand("Chromium", "142.0.7444.60")], view.DecodedFullVersionList);
+        Assert.Equal("\"32\"", view.Bitness);
+        Assert.Equal("32", view.DecodedBitness);
+        Assert.True(view.Wow64);
+        Assert.Equal("\"Desktop\"", view.FormFactors);
+        Assert.Equal(["Desktop"], view.DecodedFormFactors);
     }
 
     [Fact]

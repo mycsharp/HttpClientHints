@@ -48,7 +48,7 @@ public class HttpClientHintsTests
     }
 
     [Fact]
-    public void Equality_DependsOnlyOnThePositionalValues()
+    public void Equality_DoesNotDependOnDecodedProperties()
     {
         HttpClientHints hints = Create("\"Windows\"", null, null, null);
         HttpClientHints copy = hints with { };
@@ -57,5 +57,51 @@ public class HttpClientHintsTests
 
         Assert.Equal(hints, copy);
         Assert.Equal(hints.GetHashCode(), copy.GetHashCode());
+    }
+
+    [Fact]
+    public void Equality_IncludesTheInitProperties()
+    {
+        HttpClientHints hints = Create(null, null, null, null) with { Bitness = "\"64\"", Wow64 = false, FormFactors = "\"Desktop\"" };
+
+        Assert.Equal(hints, hints with { });
+        Assert.NotEqual(hints, hints with { Bitness = "\"32\"" });
+        Assert.NotEqual(hints, hints with { Wow64 = true });
+        Assert.NotEqual(hints, hints with { FormFactors = "\"XR\"" });
+    }
+
+    [Fact]
+    public void DecodedProperties_DecodeBitnessFormFactorsAndBrandLists()
+    {
+        HttpClientHints hints = new(null, null, null, null, null,
+            FullVersionList: "\"Chromium\";v=\"142.0.7444.60\", \"Not_A Brand\";v=\"99.0.0.0\"",
+            UA: "\"Chromium\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            Mobile: null,
+            Headers: new Dictionary<string, StringValues>(StringComparer.Ordinal))
+        {
+            Bitness = "\"64\"",
+            FormFactors = "\"Desktop\", \"XR\"",
+        };
+
+        Assert.Equal("64", hints.DecodedBitness);
+        Assert.Equal(["Desktop", "XR"], hints.DecodedFormFactors);
+        Assert.Equal([new HttpClientHintsBrand("Chromium", "142"), new HttpClientHintsBrand("Not_A Brand", "99")], hints.DecodedUA);
+        Assert.Equal(
+            [new HttpClientHintsBrand("Chromium", "142.0.7444.60"), new HttpClientHintsBrand("Not_A Brand", "99.0.0.0")],
+            hints.DecodedFullVersionList);
+    }
+
+    [Fact]
+    public void DecodedProperties_ReturnNull_WhenNewValuesAreMissing()
+    {
+        HttpClientHints hints = Create(null, null, null, null);
+
+        Assert.Null(hints.Bitness);
+        Assert.Null(hints.DecodedBitness);
+        Assert.Null(hints.Wow64);
+        Assert.Null(hints.FormFactors);
+        Assert.Null(hints.DecodedFormFactors);
+        Assert.Null(hints.DecodedUA);
+        Assert.Null(hints.DecodedFullVersionList);
     }
 }

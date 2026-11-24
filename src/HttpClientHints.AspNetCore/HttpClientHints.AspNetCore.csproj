@@ -26,4 +26,8 @@
       <ProjectReference Include="..\HttpClientHints\HttpClientHints.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="MyCSharp.HttpClientHints.AspNetCore.UnitTests" PublicKey="$(PublicKey)" />
+    </ItemGroup>
+
 </Project>

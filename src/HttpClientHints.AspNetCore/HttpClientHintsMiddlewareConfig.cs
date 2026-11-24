@@ -3,49 +3,64 @@
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
 /// <summary>
-/// Configuration options for the HTTP client hints middleware.
+/// The response header values of <see cref="HttpClientHintsRequestMiddleware"/>, computed by
+/// <see cref="HttpClientHintsRegistration.AddHttpClientHints"/>.
 /// </summary>
-public class HttpClientHintsMiddlewareConfig
+internal sealed class HttpClientHintsMiddlewareConfig
 {
-    /// <summary>
-    /// Gets or sets the response header used to convey HTTP client hints.
-    /// </summary>
-    /// <value>The name of the response header as a <see cref="string"/>.</value>
-    /// <remarks>These settings are set by <see cref="HttpClientHintsRegistration"/>. Do not set these values manually.</remarks>
-    public required string ResponseHeader
+    /// <summary>Gets or sets the value of the <c>Accept-CH</c> header.</summary>
+    public string? ResponseHeader
     {
         get;
         set
         {
             field = value;
-            HasResponseHeaders = string.IsNullOrEmpty(value) is false;
+            HasResponseHeaders = !string.IsNullOrEmpty(value);
         }
     }
 
-    /// <summary>
-    /// Gets a value indicating whether the response headers have been configured.
-    /// </summary>
-    /// <value><c>true</c> if response headers are configured; otherwise, <c>false</c>.</value>
-    public bool HasResponseHeaders { get; internal set; }
+    /// <summary>Gets a value indicating whether <see cref="ResponseHeader"/> is set.</summary>
+    public bool HasResponseHeaders { get; private set; }
 
-    /// <summary>
-    /// Gets or sets the lifetime of the client hints in seconds.
-    /// </summary>
-    /// <value>A <see cref="string"/> containing an <see cref="int"/> representing the lifetime in seconds, or <c>null</c> if unspecified.</value>
-    /// <remarks>These settings are set by <see cref="HttpClientHintsRegistration"/>. Do not set these values manually.</remarks>
+    /// <summary>Gets or sets the value of the <c>Critical-CH</c> header.</summary>
+    public string? CriticalHeader
+    {
+        get;
+        set
+        {
+            field = value;
+            HasCriticalHeader = !string.IsNullOrEmpty(value);
+        }
+    }
+
+    /// <summary>Gets a value indicating whether <see cref="CriticalHeader"/> is set.</summary>
+    public bool HasCriticalHeader { get; private set; }
+
+    /// <summary>Gets or sets the hints that the middleware appends to the <c>Vary</c> header.</summary>
+    public string? VaryHeader
+    {
+        get;
+        set
+        {
+            field = value;
+            HasVaryHeader = !string.IsNullOrEmpty(value);
+        }
+    }
+
+    /// <summary>Gets a value indicating whether <see cref="VaryHeader"/> is set.</summary>
+    public bool HasVaryHeader { get; private set; }
+
+    /// <summary>Gets or sets the value of the obsolete <c>Accept-CH-Lifetime</c> header in seconds.</summary>
     public string? LifeTime
     {
         get;
         set
         {
             field = value;
-            HasLifetime = string.IsNullOrEmpty(value) is false;
+            HasLifetime = !string.IsNullOrEmpty(value);
         }
     }
 
-    /// <summary>
-    /// Gets a value indicating whether the lifetime for client hints has been configured.
-    /// </summary>
-    /// <value><c>true</c> if lifetime is configured; otherwise, <c>false</c>.</value>
-    public bool HasLifetime { get; internal set; }
+    /// <summary>Gets a value indicating whether <see cref="LifeTime"/> is set.</summary>
+    public bool HasLifetime { get; private set; }
 }

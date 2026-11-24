@@ -1,5 +1,4 @@
 @using Microsoft.AspNetCore.Http.Features
-@using Microsoft.Extensions.Primitives
 @using MyCSharp.HttpClientHints
 @using MyCSharp.HttpClientHints.AspNetCore
 @{
@@ -8,7 +7,7 @@
     // Registered by app.UseHttpClientHintsFeature() in Program.cs.
     // Context.GetClientHints() returns the same snapshot without the feature.
     HttpClientHints clientHints = Context.Features.GetRequiredFeature<IHttpClientHintsFeature>().Snapshot;
-    clientHints.Headers.TryGetValue("Sec-CH-UA-Bitness", out StringValues bitness);
+    IReadOnlyList<HttpClientHintsBrand> brands = clientHints.DecodedFullVersionList ?? clientHints.DecodedUA ?? [];
 }
 
 <div class="text-center">
@@ -32,7 +31,12 @@
                 <tr>
                     <td>Sec-CH-UA</td>
                     <td>@(clientHints.UA)</td>
-                    <td></td>
+                    <td>@(string.Join(", ", clientHints.DecodedUA?.Select(static brand => $"{brand.Brand} {brand.Version}") ?? []))</td>
+                </tr>
+                <tr>
+                    <td>Sec-CH-UA-Full-Version-List</td>
+                    <td>@(clientHints.FullVersionList)</td>
+                    <td>@(string.Join(", ", clientHints.DecodedFullVersionList?.Select(static brand => $"{brand.Brand} {brand.Version}") ?? []))</td>
                 </tr>
                 <tr>
                     <td>Sec-CH-UA-Platform</td>
@@ -51,13 +55,13 @@
                 </tr>
                 <tr>
                     <td>Sec-CH-UA-Bitness</td>
-                    <td>@(bitness)</td>
-                    <td>@(HttpClientHintsInterpreter.DecodeStructuredString(bitness))</td>
+                    <td>@(clientHints.Bitness)</td>
+                    <td>@(clientHints.DecodedBitness)</td>
                 </tr>
                 <tr>
-                    <td>Sec-CH-UA-Full-Version-List</td>
-                    <td>@(clientHints.FullVersionList)</td>
+                    <td>Sec-CH-UA-WoW64</td>
                     <td></td>
+                    <td>@(clientHints.Wow64)</td>
                 </tr>
                 <tr>
                     <td>Sec-CH-UA-Model</td>
@@ -65,12 +69,37 @@
                     <td>@(clientHints.DecodedModel)</td>
                 </tr>
                 <tr>
+                    <td>Sec-CH-UA-Form-Factors</td>
+                    <td>@(clientHints.FormFactors)</td>
+                    <td>@(string.Join(", ", clientHints.DecodedFormFactors ?? []))</td>
+                </tr>
+                <tr>
                     <td>Sec-CH-UA-Mobile</td>
-                    <td>@(clientHints.Mobile)</td>
                     <td></td>
+                    <td>@(clientHints.Mobile)</td>
                 </tr>
             </tbody>
         </table>
     </div>
+    <h2>Brands</h2>
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Brand</th>
+                <th scope="col">Version</th>
+                <th scope="col">GREASE</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (HttpClientHintsBrand brand in brands)
+            {
+                <tr>
+                    <td>@(brand.Brand)</td>
+                    <td>@(brand.Version)</td>
+                    <td>@(brand.IsGrease)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
     <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 </div>

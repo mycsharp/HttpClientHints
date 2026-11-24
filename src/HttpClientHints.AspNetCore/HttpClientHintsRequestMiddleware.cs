@@ -6,30 +6,33 @@ using Microsoft.Extensions.Options;
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
 /// <summary>
-/// Middleware for processing HTTP Client Hints in ASP.NET Core requests.
-/// This middleware adds Client Hints headers to HTTP responses based on configuration.
+/// Sets the <c>Accept-CH</c> response header and, if configured, <c>Critical-CH</c>, <c>Vary</c> and the obsolete
+/// <c>Accept-CH-Lifetime</c>. Added by <see cref="HttpClientHintsRegistration.UseHttpClientHints"/>.
 /// </summary>
 /// <remarks>
-/// This middleware adds the 'Accept-CH' header and optionally the 'Accept-CH-Lifetime' header
-/// to responses when configured appropriately.
+/// The middleware stays async: a synchronous exception of the next middleware results in a faulted task, and
+/// <see cref="AsyncLocal{T}"/> changes of the next middleware do not flow back to the caller.
 /// </remarks>
-public class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<HttpClientHintsMiddlewareConfig> options)
+internal sealed class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<HttpClientHintsMiddlewareConfig> options)
 {
-    // Cache the options value and pre-compute conditions to avoid repeated checks
     private readonly HttpClientHintsMiddlewareConfig _options = options.Value;
 
-    /// <summary>
-    /// Middleware invocation method that processes the HTTP context.
-    /// </summary>
-    /// <param name="context">The HTTP context for the current request.</param>
-    /// <returns>A <see cref="Task"/> that represents the asynchronous operation.</returns>
     public async Task InvokeAsync(HttpContext context)
     {
         if (_options.HasResponseHeaders)
         {
-            // Set headers directly without additional checks
             IHeaderDictionary headers = context.Response.Headers;
             headers["Accept-CH"] = _options.ResponseHeader;
+
+            if (_options.HasCriticalHeader)
+            {
+                headers["Critical-CH"] = _options.CriticalHeader;
+            }
+
+            if (_options.HasVaryHeader)
+            {
+                headers.Append("Vary", _options.VaryHeader);
+            }
 
             if (_options.HasLifetime)
             {
@@ -37,7 +40,6 @@ public class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<Htt
             }
         }
 
-        // Call the next middleware in the pipeline
         await next(context).ConfigureAwait(false);
     }
 }

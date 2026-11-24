@@ -26,13 +26,8 @@
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MyCSharp.HttpClientHints.snk</AssemblyOriginatorKeyFile>
 
-    <PublicKey>
-      002400000480000094000000060200000024000052534131000400000100010049809bc922cd71
-      a1539dd60826caafead07781420334254bdc0c276165f7313f241833f972437ee215684b4e10de
-      49501812fa7fcdb18baead466e32978ca3e45ff7c82616283718d6ab2b729ab40e656fb856a845
-      cede9fdd2b449fc34a99edf258524ce5e1f958a9598efba2953e34e179b13c086500f9b72ca08a
-      065effe0
-    </PublicKey>
+    <!-- Public key of MyCSharp.HttpClientHints.snk, used by InternalsVisibleTo; it must not contain white space -->
+    <PublicKey>002400000480000094000000060200000024000052534131000400000100010049809bc922cd71a1539dd60826caafead07781420334254bdc0c276165f7313f241833f972437ee215684b4e10de49501812fa7fcdb18baead466e32978ca3e45ff7c82616283718d6ab2b729ab40e656fb856a845cede9fdd2b449fc34a99edf258524ce5e1f958a9598efba2953e34e179b13c086500f9b72ca08a065effe0</PublicKey>
   </PropertyGroup>
 
   <PropertyGroup Label="Compiler">

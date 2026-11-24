@@ -139,4 +139,39 @@ public class HttpClientHintsRequestMiddlewareTests
         Assert.Equal("Sec-CH-UA-Mobile", context.Response.Headers["Accept-CH"]);
         Assert.Equal("60", context.Response.Headers["Accept-CH-Lifetime"]);
     }
+
+    [Fact]
+    public async Task InvokeAsync_WithCriticalAndVary_SetsCriticalCHAndAppendsToVary()
+    {
+        HttpClientHintsMiddlewareConfig config = new()
+        {
+            ResponseHeader = "Sec-CH-UA, Sec-CH-UA-Platform-Version",
+            CriticalHeader = "Sec-CH-UA-Platform-Version",
+            VaryHeader = "Sec-CH-UA-Platform-Version",
+        };
+        HttpClientHintsRequestMiddleware middleware = new(static _ => Task.CompletedTask, Options.Create(config));
+        DefaultHttpContext context = new();
+        context.Response.Headers.Vary = "Accept-Encoding";
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal("Sec-CH-UA, Sec-CH-UA-Platform-Version", context.Response.Headers["Accept-CH"]);
+        Assert.Equal("Sec-CH-UA-Platform-Version", context.Response.Headers["Critical-CH"]);
+        Assert.Equal(["Accept-Encoding", "Sec-CH-UA-Platform-Version"], context.Response.Headers.Vary.ToArray());
+        Assert.False(context.Response.Headers.ContainsKey("Accept-CH-Lifetime"));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_WithoutCriticalAndVary_SetsOnlyAcceptCH()
+    {
+        HttpClientHintsMiddlewareConfig config = new() { ResponseHeader = "Sec-CH-UA", CriticalHeader = string.Empty, VaryHeader = string.Empty };
+        HttpClientHintsRequestMiddleware middleware = new(static _ => Task.CompletedTask, Options.Create(config));
+        DefaultHttpContext context = new();
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal("Sec-CH-UA", context.Response.Headers["Accept-CH"]);
+        Assert.False(context.Response.Headers.ContainsKey("Critical-CH"));
+        Assert.False(context.Response.Headers.ContainsKey("Vary"));
+    }
 }

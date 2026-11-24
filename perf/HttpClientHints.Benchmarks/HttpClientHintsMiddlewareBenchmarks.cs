@@ -15,18 +15,30 @@ public class HttpClientHintsMiddlewareBenchmarks
     private RequestDelegate _acceptChPipeline = null!;
     private RequestDelegate _featurePipeline = null!;
     private RequestDelegate _bothPipeline = null!;
+    private RequestDelegate _criticalAndVaryPipeline = null!;
+    private ServiceProvider _criticalAndVaryServiceProvider = null!;
     private DefaultHttpContext _context = null!;
 
     [GlobalSetup]
     public void Setup()
     {
         ServiceCollection services = new();
-        services.AddHttpClientHints(options => options.Lifetime = TimeSpan.FromDays(31));
+        services.AddHttpClientHints(static options => options.Platform = true);
         _serviceProvider = services.BuildServiceProvider();
 
-        _acceptChPipeline = BuildPipeline(static app => app.UseHttpClientHints());
-        _featurePipeline = BuildPipeline(static app => app.UseHttpClientHintsFeature());
-        _bothPipeline = BuildPipeline(static app => app.UseHttpClientHints().UseHttpClientHintsFeature());
+        ServiceCollection criticalAndVaryServices = new();
+        criticalAndVaryServices.AddHttpClientHints(static options =>
+        {
+            options.Platform = true;
+            options.Critical = ["Sec-CH-UA-Platform-Version"];
+            options.Vary = true;
+        });
+        _criticalAndVaryServiceProvider = criticalAndVaryServices.BuildServiceProvider();
+
+        _acceptChPipeline = BuildPipeline(_serviceProvider, static app => app.UseHttpClientHints());
+        _featurePipeline = BuildPipeline(_serviceProvider, static app => app.UseHttpClientHintsFeature());
+        _bothPipeline = BuildPipeline(_serviceProvider, static app => app.UseHttpClientHints().UseHttpClientHintsFeature());
+        _criticalAndVaryPipeline = BuildPipeline(_criticalAndVaryServiceProvider, static app => app.UseHttpClientHints());
 
         // Every invocation reuses this context. Servers such as Kestrel allocate differently when a feature is registered.
         _context = new DefaultHttpContext();
@@ -36,10 +48,22 @@ public class HttpClientHintsMiddlewareBenchmarks
     }
 
     [GlobalCleanup]
-    public void Cleanup() => _serviceProvider.Dispose();
+    public void Cleanup()
+    {
+        _serviceProvider.Dispose();
+        _criticalAndVaryServiceProvider.Dispose();
+    }
 
     [Benchmark]
     public Task UseHttpClientHints() => _acceptChPipeline(_context);
+
+    [Benchmark]
+    public Task UseHttpClientHintsWithCriticalAndVary()
+    {
+        // Vary is appended, so the response headers are reset like for a new response.
+        _context.Response.Headers.Remove("Vary");
+        return _criticalAndVaryPipeline(_context);
+    }
 
     [Benchmark]
     public Task UseHttpClientHintsFeature() => _featurePipeline(_context);
@@ -54,9 +78,9 @@ public class HttpClientHintsMiddlewareBenchmarks
         return _context.Features.Get<IHttpClientHintsFeature>()!.View.Mobile;
     }
 
-    private RequestDelegate BuildPipeline(Action<IApplicationBuilder> configure)
+    private static RequestDelegate BuildPipeline(ServiceProvider serviceProvider, Action<IApplicationBuilder> configure)
     {
-        ApplicationBuilder app = new(_serviceProvider);
+        ApplicationBuilder app = new(serviceProvider);
         configure(app);
         app.Run(static _ => Task.CompletedTask);
         return app.Build();

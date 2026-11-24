@@ -1,20 +1,43 @@
+<div align="center">
+
+<img src="res/httpclienthints-logo.png" alt="HttpClientHints logo: the myCSharp.de raccoon in a browser window, reading the Sec-CH-UA-Platform Client Hint with a magnifying glass" width="180" />
+
 # MyCSharp.HttpClientHints
 
-Reading HTTP Client Hints with .NET
+**Reading HTTP Client Hints with .NET**
+
+Requests Client Hints with `Accept-CH` and reads the browser, platform, architecture, model and mobile hints in ASP.NET Core.
+
+[![Build](https://img.shields.io/github/actions/workflow/status/mycsharp/HttpClientHints/main-build.yml?branch=main&logo=githubactions&logoColor=white&label=build)](https://github.com/mycsharp/HttpClientHints/actions/workflows/main-build.yml)
+[![Coverage: 100% line and branch coverage, enforced in CI](https://img.shields.io/badge/coverage-100%25-brightgreen)](#build-and-test)
+[![NuGet](https://img.shields.io/nuget/v/MyCSharp.HttpClientHints?logo=nuget&label=nuget&color=004880)](https://nubrowse.com/packages/MyCSharp.HttpClientHints)
+[![NuGet downloads](https://img.shields.io/nuget/dt/MyCSharp.HttpClientHints?logo=nuget&label=downloads&color=004880)](https://nubrowse.com/packages/MyCSharp.HttpClientHints)
+[![License: MIT](https://img.shields.io/github/license/mycsharp/HttpClientHints?color=blue)](LICENSE)
+
+[![.NET 8 | 9 | 10 | 11](https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010%20%7C%2011-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![Strong-named assemblies](https://img.shields.io/badge/strong--named-yes-blue)](https://learn.microsoft.com/dotnet/standard/assembly/strong-named)
+[![SourceLink enabled](https://img.shields.io/badge/SourceLink-enabled-blue)](https://learn.microsoft.com/dotnet/standard/library-guidance/sourcelink)
+
+[![GitHub stars](https://img.shields.io/github/stars/mycsharp/HttpClientHints?logo=github)](https://github.com/mycsharp/HttpClientHints/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/mycsharp/HttpClientHints/main?logo=github)](https://github.com/mycsharp/HttpClientHints/commits/main)
+[![Open issues](https://img.shields.io/github/issues/mycsharp/HttpClientHints?logo=github)](https://github.com/mycsharp/HttpClientHints/issues)
+
+</div>
 
 ## NuGet
 
-| NuGet | Install |
-|-|-|
-| [![MyCSharp.HttpClientHints](https://img.shields.io/nuget/v/MyCSharp.HttpClientHints.svg?logo=nuget&label=MyCSharp.HttpClientHints)](https://www.nuget.org/packages/MyCSharp.HttpClientHints) | `dotnet add package MyCSharp.HttpClientHints` |
-| [![MyCSharp.HttpClientHints.AspNetCore](https://img.shields.io/nuget/v/MyCSharp.HttpClientHints.AspNetCore.svg?logo=nuget&label=MyCSharp.HttpClientHints.AspNetCore)](https://www.nuget.org/packages/MyCSharp.HttpClientHints.AspNetCore) | `dotnet add package MyCSharp.HttpClientHints.AspNetCore` |
+| Package | Version | Downloads | Install |
+| --- | --- | --- | --- |
+| **[MyCSharp.HttpClientHints](https://nubrowse.com/packages/MyCSharp.HttpClientHints)**<br><sub>`HttpClientHints` record and header decoding</sub> | [![NuGet](https://img.shields.io/nuget/v/MyCSharp.HttpClientHints?logo=nuget&label=nuget&color=004880)](https://nubrowse.com/packages/MyCSharp.HttpClientHints) | [![Downloads](https://img.shields.io/nuget/dt/MyCSharp.HttpClientHints?label=downloads&color=004880)](https://nubrowse.com/packages/MyCSharp.HttpClientHints) | `dotnet add package MyCSharp.HttpClientHints` |
+| **[MyCSharp.HttpClientHints.AspNetCore](https://nubrowse.com/packages/MyCSharp.HttpClientHints.AspNetCore)**<br><sub>`Accept-CH` middleware and `HttpContext` integration</sub> | [![NuGet](https://img.shields.io/nuget/v/MyCSharp.HttpClientHints.AspNetCore?logo=nuget&label=nuget&color=004880)](https://nubrowse.com/packages/MyCSharp.HttpClientHints.AspNetCore) | [![Downloads](https://img.shields.io/nuget/dt/MyCSharp.HttpClientHints.AspNetCore?label=downloads&color=004880)](https://nubrowse.com/packages/MyCSharp.HttpClientHints.AspNetCore) | `dotnet add package MyCSharp.HttpClientHints.AspNetCore` |
 
+The NuGet packages target .NET 8, 9, 10, and 11. Building the solution requires the .NET 11 SDK. ASP.NET Core applications only need `MyCSharp.HttpClientHints.AspNetCore`, which references the core package.
 
 ## Client Hints
 
-HTTP client hints are intended to completely replace the user agents (see [mycsharp/HttpUserAgentParser](https://github.com/mycsharp/HttpUserAgentParser)) of the browser in the long term and pay more attention to data protection. We are currently in a phase in which client hints are generally regarded as experimental and therefore do not represent a complete alternative.
+User-Agent Client Hints are intended to replace the `User-Agent` header (see [mycsharp/HttpUserAgentParser](https://github.com/mycsharp/HttpUserAgentParser)) in the long term and expose less information by default. Not every browser sends them yet, so they are not a complete alternative to the `User-Agent` header today.
 
-Furthermore, in contrast to the User-Agent header, not all client hints are provided automatically, but only on request after the first response from the client.
+Unlike the `User-Agent` header, browsers send most Client Hints only after the server requests them with the `Accept-CH` response header, and only over HTTPS. A few hints, such as `Sec-CH-UA`, `Sec-CH-UA-Mobile`, and `Sec-CH-UA-Platform`, are sent with every request.
 
 ## Usage
 
@@ -74,7 +97,7 @@ Since potentially all client hints are optional, all properties are potentially 
 
 ## HttpContext feature
 
-Since 3.3, you can register `IHttpClientHintsFeature` in `HttpContext.Features` with a separate middleware. Add it only if you want to read the Client Hints through the feature:
+A separate middleware registers `IHttpClientHintsFeature` in `HttpContext.Features`. Add it only if you want to read the Client Hints through the feature:
 
 ```csharp
 app.UseHttpClientHints();
@@ -103,7 +126,7 @@ Without `UseHttpClientHintsFeature()`, requests have no additional cost, and `Fe
 
 ## Decoded values
 
-Browsers send `Sec-CH-UA-Platform`, `Sec-CH-UA-Platform-Version`, `Sec-CH-UA-Arch`, and `Sec-CH-UA-Model` as quoted strings, for example `Sec-CH-UA-Platform: "Windows"`. `Platform`, `PlatformVersion`, `Architecture`, and `Model` return these header values as sent, including the quotes. Since 3.2, the matching `Decoded*` properties return the value without quotes and escapes.
+Browsers send `Sec-CH-UA-Platform`, `Sec-CH-UA-Platform-Version`, `Sec-CH-UA-Arch`, and `Sec-CH-UA-Model` as quoted strings, for example `Sec-CH-UA-Platform: "Windows"`. `Platform`, `PlatformVersion`, `Architecture`, and `Model` return these header values as sent, including the quotes. The matching `Decoded*` properties return the value without quotes and escapes.
 
 | Request header | Property | Decoded property |
 | --- | --- | --- |
@@ -167,7 +190,7 @@ string? decodedBitness = HttpClientHintsInterpreter.DecodeStructuredString(bitne
 
 ## Build and test
 
-Use the .NET 11 SDK to build the solution. Both NuGet packages target .NET 8, 9, 10, and 11. The .NET 11 build uses `Microsoft.Extensions.Primitives` from the shared runtime. Install the corresponding runtimes to run the full test suite.
+Use the .NET 11 SDK to build the solution. The .NET 11 build uses `Microsoft.Extensions.Primitives` from the shared runtime. Install the corresponding runtimes to run the full test suite.
 
 ```shell
 dotnet build -c Release
@@ -219,7 +242,7 @@ Reading header values from the view does not allocate, and a snapshot allocates 
 
 ### Middleware
 
-The middleware benchmarks run pipelines built with `ApplicationBuilder`. They reuse one `DefaultHttpContext`, and the last handler completes synchronously. `UseHttpClientHints()` sets `Accept-CH` and `Accept-CH-Lifetime` and does not allocate in this setup. If a later middleware completes asynchronously, it allocates its async state machine, as in earlier versions. `UseHttpClientHintsFeature()` allocates the 24-byte feature and returns the task of the next middleware directly. Registering the feature changes the revision of the feature collection, so `HttpContext` looks up the features it has cached again. Other servers can allocate more for the registration, see [HttpContext feature](#httpcontext-feature).
+The middleware benchmarks run pipelines built with `ApplicationBuilder`. They reuse one `DefaultHttpContext`, and the last handler completes synchronously. `UseHttpClientHints()` sets `Accept-CH` and `Accept-CH-Lifetime` and does not allocate in this setup. If a later middleware completes asynchronously, it allocates its async state machine. `UseHttpClientHintsFeature()` allocates the 24-byte feature and returns the task of the next middleware directly. Registering the feature changes the revision of the feature collection, so `HttpContext` looks up the features it has cached again. Other servers can allocate more for the registration, see [HttpContext feature](#httpcontext-feature).
 
 | Method                               | Mean     | Error    | StdDev   | Gen0   | Allocated |
 |------------------------------------- |---------:|---------:|---------:|-------:|----------:|

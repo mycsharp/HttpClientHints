@@ -56,12 +56,12 @@
     <RepositoryUrl>https://github.com/mycsharp/HttpClientHints</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>UserAgent, User Agent, Client Hints, Browser, Client, Detector, Detection, Console, ASP, Desktop, Mobile</PackageTags>
-    <PackageIcon>mycsharpde-logo-nuget.png</PackageIcon>
+    <PackageIcon>httpclienthints-logo.png</PackageIcon>
   </PropertyGroup>
 
-  <!-- Ensure the repository root res/mycsharpde-logo-nuget.png is packed into NuGet packages -->
+  <!-- Ensure the repository root res/httpclienthints-logo.png is packed into NuGet packages -->
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)res\mycsharpde-logo-nuget.png" Pack="true" PackagePath="" />
+    <None Include="$(MSBuildThisFileDirectory)res\httpclienthints-logo.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(IsBenchmarkProject)' == 'true'">

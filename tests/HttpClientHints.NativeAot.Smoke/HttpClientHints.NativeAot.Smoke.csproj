@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Native AOT smoke test: publish with
+          dotnet publish tests/HttpClientHints.NativeAot.Smoke -c Release -f net11.0 -r linux-x64
+        and run the produced executable. The libraries are rooted completely, so the trimmer and the
+        AOT compiler analyze all of their code; any trimming or AOT warning fails the publish.
+    -->
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <PublishAot>true</PublishAot>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <TrimmerSingleWarn>false</TrimmerSingleWarn>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\HttpClientHints\HttpClientHints.csproj" />
+        <ProjectReference Include="..\..\src\HttpClientHints.AspNetCore\HttpClientHints.AspNetCore.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Label="Analyze all library code, not only the code reachable from this app">
+        <TrimmerRootAssembly Include="MyCSharp.HttpClientHints" />
+        <TrimmerRootAssembly Include="MyCSharp.HttpClientHints.AspNetCore" />
+    </ItemGroup>
+
+</Project>

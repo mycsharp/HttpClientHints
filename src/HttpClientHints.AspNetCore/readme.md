@@ -5,6 +5,7 @@ ASP.NET Core integration for MyCSharp.HttpClientHints.
 - Middleware that requests Client Hints with the `Accept-CH` response header
 - `GetClientHints()` and `GetClientHintsView()` on `HttpContext` and `IHeaderDictionary`
 - Optional `IHttpClientHintsFeature` in `HttpContext.Features`
+- Trimming and Native AOT compatible
 
 Repository:
 https://github.com/mycsharp/HttpClientHints

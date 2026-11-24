@@ -5,6 +5,7 @@ Read HTTP Client Hints with .NET.
 - `HttpClientHints` record with the values of the `Sec-CH-UA` request headers and access to all received headers
 - `Decoded*` properties return quoted header values such as `"Windows"` without quotes and escapes
 - `HttpClientHintsInterpreter` interprets `Sec-CH-UA-Mobile` and decodes other quoted header values ([RFC 9651 § 4.2.5](https://www.rfc-editor.org/rfc/rfc9651.html#section-4.2.5))
+- Trimming and Native AOT compatible
 
 Repository:
 https://github.com/mycsharp/HttpClientHints

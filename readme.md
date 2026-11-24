@@ -15,6 +15,8 @@ Requests Client Hints with `Accept-CH` and reads the browser, platform, architec
 [![License: MIT](https://img.shields.io/github/license/mycsharp/HttpClientHints?color=blue)](LICENSE)
 
 [![.NET 8 | 9 | 10 | 11](https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010%20%7C%2011-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![Native AOT compatible](https://img.shields.io/badge/Native%20AOT-compatible-512BD4?logo=dotnet&logoColor=white)](#native-aot-and-trimming)
+[![Trimming compatible](https://img.shields.io/badge/trimming-compatible-512BD4?logo=dotnet&logoColor=white)](#native-aot-and-trimming)
 [![Strong-named assemblies](https://img.shields.io/badge/strong--named-yes-blue)](https://learn.microsoft.com/dotnet/standard/assembly/strong-named)
 [![SourceLink enabled](https://img.shields.io/badge/SourceLink-enabled-blue)](https://learn.microsoft.com/dotnet/standard/library-guidance/sourcelink)
 
@@ -187,6 +189,23 @@ Like the platform, `Sec-CH-UA-Bitness` is sent as a quoted string such as `"64"`
 ```csharp
 string? decodedBitness = HttpClientHintsInterpreter.DecodeStructuredString(bitness); // 64
 ```
+
+## Native AOT and trimming
+
+Both packages are annotated with `IsAotCompatible`, so the trimming and AOT analyzers check them on every build. The Native AOT smoke test (`tests/HttpClientHints.NativeAot.Smoke`) is published and run with .NET 8, 9, 10, and 11 in every CI build of `main` and of pull requests:
+
+```shell
+dotnet publish tests/HttpClientHints.NativeAot.Smoke -c Release -f net11.0 -r linux-x64
+```
+
+The app roots both library assemblies, so the trimmer and the AOT compiler analyze all of their code, and the publish fails on any trimming or AOT warning. At runtime it checks:
+
+- decoding of quoted header values and of `Sec-CH-UA-Mobile`
+- the `Accept-CH` and `Accept-CH-Lifetime` response headers of `UseHttpClientHints()`
+- `GetClientHints()` and `GetClientHintsView()` on `HttpContext` and `IHeaderDictionary`
+- `IHttpClientHintsFeature` registered by `UseHttpClientHintsFeature()`
+
+Publishing with Native AOT requires the [platform toolchain](https://learn.microsoft.com/dotnet/core/deploying/native-aot/#prerequisites): `clang` and `zlib1g-dev` on Linux, the Visual Studio workload "Desktop development with C++" on Windows.
 
 ## Build and test
 

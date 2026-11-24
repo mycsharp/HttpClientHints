@@ -1,6 +1,10 @@
-# Fails when the merged Cobertura report in the results directory is below the coverage threshold
-# or does not contain every required package.
+# Fails when the line or branch coverage of a package is below the threshold, or a package is missing.
 # Usage: ./eng/Assert-CodeCoverage.ps1 -ResultsDirectory ./TestResults -Threshold 100
+#
+# Every test project and target framework writes its own Cobertura report. The report that dotnet test merges from
+# them does not combine the hits of a package that several test projects cover: it keeps the hits of one project only.
+# This script therefore reads all reports and takes, for every line, the highest number of covered branches of any
+# report. Cobertura does not record which branches are covered, so the branch coverage is a lower bound.
 
 [CmdletBinding()]
 param(
@@ -17,45 +21,94 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $reports = @(Get-ChildItem -Path $ResultsDirectory -Recurse -Filter '*.cobertura.xml')
-$report = $reports | Where-Object Name -like 'merged-*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $report -and $reports.Count -eq 1) {
-    $report = $reports[0]
-}
-if (-not $report) {
-    throw "Expected one merged Cobertura report in '$ResultsDirectory', found $($reports.Count) reports."
+if ($reports.Count -eq 0) {
+    throw "Expected Cobertura reports in '$ResultsDirectory', found none."
 }
 
-[xml] $coverage = Get-Content -Path $report.FullName -Raw
-$invariant = [cultureinfo]::InvariantCulture
-$lineRate = [double]::Parse($coverage.coverage.'line-rate', $invariant) * 100
-$branchRate = [double]::Parse($coverage.coverage.'branch-rate', $invariant) * 100
-
-Write-Host ([string]::Format($invariant, 'Coverage report: {0}', $report.FullName))
-Write-Host ([string]::Format($invariant, 'Line coverage:   {0:F2} % (minimum {1} %)', $lineRate, $Threshold))
-Write-Host ([string]::Format($invariant, 'Branch coverage: {0:F2} % (minimum {1} %)', $branchRate, $Threshold))
-
-$failed = $lineRate -lt $Threshold -or $branchRate -lt $Threshold
-
-# A report without one of the packages would otherwise pass with the coverage of the remaining packages.
-$packages = @($coverage.coverage.packages.package)
+# package -> "file:line" -> @{ Hit; Covered; Total }
+$packages = @{}
 foreach ($name in $RequiredPackages) {
-    $found = @($packages | Where-Object { $_.name -eq $name })
-    if ($found.Count -eq 0) {
-        Write-Host "Package $name`: missing from the coverage report"
+    $packages[$name] = @{}
+}
+
+foreach ($report in $reports) {
+    [xml] $coverage = Get-Content -LiteralPath $report.FullName -Raw
+    foreach ($package in @($coverage.coverage.packages.package)) {
+        if (-not $packages.ContainsKey($package.name)) {
+            continue
+        }
+
+        $lines = $packages[$package.name]
+        foreach ($class in @($package.classes.class)) {
+            foreach ($line in @($class.lines.line)) {
+                if ($null -eq $line) {
+                    continue
+                }
+
+                $key = "$($class.filename):$($line.number)"
+                $covered = 0
+                $total = 0
+                if ($line.'condition-coverage' -match '\((\d+)/(\d+)\)') {
+                    $covered = [int] $Matches[1]
+                    $total = [int] $Matches[2]
+                }
+
+                $entry = $lines[$key]
+                if ($null -eq $entry) {
+                    $lines[$key] = @{ Hit = [int] $line.hits -gt 0; Covered = $covered; Total = $total }
+                    continue
+                }
+
+                $entry.Hit = $entry.Hit -or ([int] $line.hits -gt 0)
+                $entry.Covered = [Math]::Max($entry.Covered, $covered)
+                $entry.Total = [Math]::Max($entry.Total, $total)
+            }
+        }
+    }
+}
+
+$invariant = [cultureinfo]::InvariantCulture
+Write-Host ([string]::Format($invariant, 'Coverage of {0} reports in {1}', $reports.Count, $ResultsDirectory))
+
+function Get-Rate([double] $covered, [double] $total) {
+    if ($total -eq 0) { return 100.0 }
+    return $covered * 100 / $total
+}
+
+$failed = $false
+$allLines = 0; $allCoveredLines = 0; $allBranches = 0; $allCoveredBranches = 0
+foreach ($name in $RequiredPackages) {
+    $entries = @($packages[$name].Values)
+    if ($entries.Count -eq 0) {
+        Write-Host "Package $name`: missing from the coverage reports"
         $failed = $true
         continue
     }
 
-    foreach ($package in $found) {
-        $packageLineRate = [double]::Parse($package.'line-rate', $invariant) * 100
-        $packageBranchRate = [double]::Parse($package.'branch-rate', $invariant) * 100
-        Write-Host ([string]::Format($invariant, 'Package {0}: line {1:F2} %, branch {2:F2} %', $name, $packageLineRate, $packageBranchRate))
+    $coveredLines = @($entries | Where-Object Hit).Count
+    $branches = ($entries | Measure-Object -Property Total -Sum).Sum
+    $coveredBranches = ($entries | Measure-Object -Property Covered -Sum).Sum
+    $allLines += $entries.Count; $allCoveredLines += $coveredLines
+    $allBranches += $branches; $allCoveredBranches += $coveredBranches
 
-        if ($packageLineRate -lt $Threshold -or $packageBranchRate -lt $Threshold) {
-            $failed = $true
+    $lineRate = Get-Rate $coveredLines $entries.Count
+    $branchRate = Get-Rate $coveredBranches $branches
+    Write-Host ([string]::Format($invariant, 'Package {0}: line {1:F2} % ({2}/{3}), branch {4:F2} % ({5}/{6})',
+        $name, $lineRate, $coveredLines, $entries.Count, $branchRate, $coveredBranches, $branches))
+
+    if ($lineRate -lt $Threshold -or $branchRate -lt $Threshold) {
+        $failed = $true
+        foreach ($key in ($packages[$name].Keys | Sort-Object)) {
+            $entry = $packages[$name][$key]
+            if (-not $entry.Hit -or $entry.Covered -lt $entry.Total) {
+                Write-Host ([string]::Format($invariant, '  not covered: {0} (branches {1}/{2})', $key, $entry.Covered, $entry.Total))
+            }
         }
     }
 }
+
+Write-Host ([string]::Format($invariant, 'Line coverage:   {0:F2} % (minimum {1} %)', (Get-Rate $allCoveredLines $allLines), $Threshold))
+Write-Host ([string]::Format($invariant, 'Branch coverage: {0:F2} % (minimum {1} %)', (Get-Rate $allCoveredBranches $allBranches), $Threshold))
 
 if ($failed) {
     Write-Error ([string]::Format($invariant, 'Code coverage is below the minimum of {0} % or a required package is missing.', $Threshold))

@@ -52,11 +52,19 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
 
     <Description>HTTP Client Hints for .NET</Description>
+    <Copyright>Copyright (c) 2024-2026 MyCSharp</Copyright>
     <PackageProjectUrl>https://github.com/mycsharp/HttpClientHints</PackageProjectUrl>
     <RepositoryUrl>https://github.com/mycsharp/HttpClientHints</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>UserAgent, User Agent, Client Hints, Browser, Client, Detector, Detection, Console, ASP, Desktop, Mobile</PackageTags>
+    <PackageReleaseNotes>https://github.com/mycsharp/HttpClientHints/releases</PackageReleaseNotes>
+    <!-- NuGet splits tags at spaces, so each tag is a single word -->
+    <PackageTags>client-hints;user-agent-client-hints;user-agent;sec-ch-ua;accept-ch;aspnetcore;http;browser;platform;mobile</PackageTags>
     <PackageIcon>httpclienthints-logo.png</PackageIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Deterministic CI builds">
+    <!-- Maps source paths to /_/ so that the packages do not contain paths of the build agent -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <!-- Ensure the repository root res/httpclienthints-logo.png is packed into NuGet packages -->

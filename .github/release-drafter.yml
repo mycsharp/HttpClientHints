@@ -4,8 +4,12 @@
 name-template: 'Version $RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 
-# Categories for organizing release notes
+# Categories for organizing release notes. A pull request appears in every category whose labels it has,
+# so the autolabeler below gives every pull request one category label.
 categories:
+  - title: '💥 Breaking Changes'
+    labels:
+      - 'breaking-change'
   - title: '🚀 Features'
     labels:
       - 'feature'
@@ -68,40 +72,35 @@ template: |
 
   **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
 
-# Automatically label PRs based on modified files
+# Label pull requests (.github/workflows/pr-labeler.yml). The category label comes from the Conventional Commits
+# type in the title, for example "feat: ..." or "fix(parser): ...". A breaking change ("feat!: ...") gets only
+# breaking-change. Dependabot adds the dependencies label itself.
 autolabeler:
-  - label: 'documentation'
-    files:
-      - '*.md'
-      - 'docs/**/*'
-  - label: 'bug'
-    branch:
-      - '/fix\/.+/'
+  - label: 'breaking-change'
     title:
-      - '/fix/i'
+      - '/^[a-z]+(\([^)]*\))?!:/i'
   - label: 'feature'
-    branch:
-      - '/feature\/.+/'
     title:
-      - '/feature/i'
-  - label: 'dependencies'
-    files:
-      - '**/packages.lock.json'
-      - '**/*.csproj'
-      - 'Directory.Packages.props'
-      - 'Directory.Build.props'
+      - '/^feat(\([^)]*\))?:/i'
+  - label: 'bug'
+    title:
+      - '/^fix(\([^)]*\))?:/i'
+  - label: 'performance'
+    title:
+      - '/^perf(\([^)]*\))?:/i'
+  - label: 'documentation'
+    title:
+      - '/^docs(\([^)]*\))?:/i'
+  - label: 'maintenance'
+    title:
+      - '/^(build|chore|ci|refactor|style|test)(\([^)]*\))?:/i'
+  # Labels that describe the changed areas; they are not release note categories
   - label: 'github-actions'
     files:
       - '.github/workflows/**/*'
   - label: 'tests'
     files:
       - 'tests/**/*'
-      - '**/*Tests.cs'
-      - '**/*Test.cs'
-  - label: 'performance'
-    files:
-      - 'perf/**/*'
-      - '**/*Benchmark*.cs'
 
 # Version resolver (uses version from workflow input)
 version-resolver:

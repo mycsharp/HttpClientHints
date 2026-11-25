@@ -259,6 +259,8 @@ CI also checks the formatting with `dotnet format --verify-no-changes`. Run the 
 
 Every push to `main` builds and tests the solution and creates a draft GitHub release with the NuGet packages. Publishing that release runs `.github/workflows/release-publish.yml`, which pushes the packages to NuGet.org with [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing). The workflow exchanges a GitHub OIDC token for a NuGet API key that is valid for one hour, so the repository stores no NuGet API key.
 
+The draft release groups the merged pull requests by label. `.github/workflows/pr-labeler.yml` labels every pull request with the rules in `.github/release-drafter.yml`: the category comes from the Conventional Commits type in the title, for example `feat:` for features, `fix:` for bug fixes and `chore:` or `ci:` for maintenance. A title with `!`, such as `feat!:`, marks a breaking change, which the release notes list first.
+
 To publish the packages of an existing release again, run the workflow manually with the release tag:
 
 ```shell

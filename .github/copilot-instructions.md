@@ -31,4 +31,4 @@
 
 ## Commits
 
-Use Conventional Commits, for example `feat:`, `fix:`, `perf:`, `docs:`, `test:`, `ci:` and `chore:`.
+Use Conventional Commits, for example `feat:`, `fix:`, `perf:`, `docs:`, `test:`, `ci:` and `chore:`, also for pull request titles: the PR Labeler workflow derives the release note category from the type, and `!` (for example `feat!:`) marks a breaking change.

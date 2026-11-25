@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Product>HTTP Client Hints Extensions for ASP.NET Core</Product>
-        <Description>HTTP Client Hints Extensions for ASP.NET Core</Description>
+        <Product>HTTP Client Hints for ASP.NET Core</Product>
+        <Description>Requests HTTP Client Hints with Accept-CH and reads them from the HttpContext in ASP.NET Core.</Description>
     </PropertyGroup>
 
     <PropertyGroup Label="Native AOT and trimming">
@@ -16,6 +16,7 @@
 
     <ItemGroup>
         <None Include="readme.md" Pack="true" PackagePath="" />
+        <PackageReference Include="Nerdbank.GitVersioning" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>
@@ -24,6 +25,10 @@
 
     <ItemGroup>
       <ProjectReference Include="..\HttpClientHints\HttpClientHints.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="MyCSharp.HttpClientHints.AspNetCore.UnitTests" PublicKey="$(PublicKey)" />
     </ItemGroup>
 
 </Project>

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag of the GitHub release whose packages to publish, for example v3.2.3'
+        description: 'Tag of the published GitHub release whose packages to publish, for example v3.2.3'
         required: true
         type: string
 
@@ -22,15 +22,16 @@ jobs:
       id-token: write # Request the GitHub OIDC token for NuGet Trusted Publishing
 
     steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: eng
+          persist-credentials: false
+
       - name: Download release assets
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: |
-          gh release download "$RELEASE_TAG" \
-            --pattern "*.nupkg" \
-            --dir ./artifacts \
-            --repo "${{ github.repository }}"
+        run: python3 -m eng.download_release_packages
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -42,18 +43,33 @@ jobs:
             11.0.x
 
       - name: Verify packages
+        shell: python
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
-          echo "Packages to be published:"
-          ls -la ./artifacts/*.nupkg
+          import os
+          from pathlib import Path
+          from xml.etree import ElementTree
+          from zipfile import ZipFile
 
-          # Verify package count
-          PACKAGE_COUNT=$(ls ./artifacts/*.nupkg | wc -l)
-          if [ "$PACKAGE_COUNT" -eq 0 ]; then
-            echo "Error: No packages found!"
-            exit 1
-          fi
-
-          echo "Found $PACKAGE_COUNT package(s) to publish"
+          tag = os.environ["RELEASE_TAG"]
+          version = tag.removeprefix("v")
+          expected = {"MyCSharp.HttpClientHints", "MyCSharp.HttpClientHints.AspNetCore"}
+          packages = sorted(Path("artifacts").glob("*.nupkg"))
+          if len(packages) != len(expected):
+              raise SystemExit(f"Expected both release packages for {tag}, found {packages}")
+          for package in packages:
+              with ZipFile(package) as archive:
+                  manifests = [name for name in archive.namelist() if "/" not in name and name.endswith(".nuspec")]
+                  if len(manifests) != 1:
+                      raise SystemExit(f"Expected one package manifest in {package}")
+                  manifest = ElementTree.fromstring(archive.read(manifests[0]))
+              package_id = manifest.findtext("{*}metadata/{*}id")
+              package_version = manifest.findtext("{*}metadata/{*}version")
+              if package_id not in expected or package_version != version:
+                  raise SystemExit(f"Unexpected package {package_id} {package_version} in {package} for {tag}")
+              expected.remove(package_id)
+              print(f"Verified {package_id} {package_version}")
 
       # Trusted Publishing: exchanges the GitHub OIDC token for a NuGet API key that is valid for one hour.
       # Requires a Trusted Publishing policy on nuget.org for this repository and release-publish.yml,

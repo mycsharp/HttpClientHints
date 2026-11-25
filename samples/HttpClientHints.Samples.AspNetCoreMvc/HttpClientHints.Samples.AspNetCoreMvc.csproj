@@ -3,6 +3,7 @@
     <PropertyGroup>
         <NoWarn>$(NoWarn);1591</NoWarn>
         <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+        <PublishSingleFile Condition="'$(SelfContained)' == 'true'">true</PublishSingleFile>
     </PropertyGroup>
 
     <ItemGroup>

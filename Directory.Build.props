@@ -26,13 +26,8 @@
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MyCSharp.HttpClientHints.snk</AssemblyOriginatorKeyFile>
 
-    <PublicKey>
-      002400000480000094000000060200000024000052534131000400000100010049809bc922cd71
-      a1539dd60826caafead07781420334254bdc0c276165f7313f241833f972437ee215684b4e10de
-      49501812fa7fcdb18baead466e32978ca3e45ff7c82616283718d6ab2b729ab40e656fb856a845
-      cede9fdd2b449fc34a99edf258524ce5e1f958a9598efba2953e34e179b13c086500f9b72ca08a
-      065effe0
-    </PublicKey>
+    <!-- Public key of MyCSharp.HttpClientHints.snk, used by InternalsVisibleTo; it must not contain white space -->
+    <PublicKey>002400000480000094000000060200000024000052534131000400000100010049809bc922cd71a1539dd60826caafead07781420334254bdc0c276165f7313f241833f972437ee215684b4e10de49501812fa7fcdb18baead466e32978ca3e45ff7c82616283718d6ab2b729ab40e656fb856a845cede9fdd2b449fc34a99edf258524ce5e1f958a9598efba2953e34e179b13c086500f9b72ca08a065effe0</PublicKey>
   </PropertyGroup>
 
   <PropertyGroup Label="Compiler">
@@ -46,22 +41,36 @@
   </PropertyGroup>
 
   <PropertyGroup Label="Package">
+    <NBGV_EmitThisAssemblyClass>false</NBGV_EmitThisAssemblyClass>
     <IsPackable>false</IsPackable>
-    <NoPackageAnalysis>true</NoPackageAnalysis>
     <MinClientVersion>2.12</MinClientVersion>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
 
     <Description>HTTP Client Hints for .NET</Description>
+    <Copyright>Copyright (c) 2024-2026 MyCSharp</Copyright>
     <PackageProjectUrl>https://github.com/mycsharp/HttpClientHints</PackageProjectUrl>
     <RepositoryUrl>https://github.com/mycsharp/HttpClientHints</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>UserAgent, User Agent, Client Hints, Browser, Client, Detector, Detection, Console, ASP, Desktop, Mobile</PackageTags>
-    <PackageIcon>httpclienthints-logo.png</PackageIcon>
+    <PackageReleaseNotes>https://github.com/mycsharp/HttpClientHints/releases</PackageReleaseNotes>
+    <!-- NuGet splits tags at spaces, so each tag is a single word -->
+    <PackageTags>client-hints;user-agent-client-hints;user-agent;sec-ch-ua;accept-ch;aspnetcore;http;browser;platform;mobile</PackageTags>
+    <PackageIcon>httpclienthints-icon.png</PackageIcon>
   </PropertyGroup>
 
-  <!-- Ensure the repository root res/httpclienthints-logo.png is packed into NuGet packages -->
+  <PropertyGroup Label="Package validation">
+    <!-- dotnet pack compares the API with the published baseline; intended breaking changes are listed in CompatibilitySuppressions.xml -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>3.3.5</PackageValidationBaselineVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Deterministic CI builds">
+    <!-- Maps source paths to /_/ so that the packages do not contain paths of the build agent -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Pack the 128x128 icon from res/ into the NuGet packages; the readme uses the 512x512 logo -->
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)res\httpclienthints-logo.png" Pack="true" PackagePath="" />
+    <None Include="$(MSBuildThisFileDirectory)res\httpclienthints-icon.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(IsBenchmarkProject)' == 'true'">

@@ -6,25 +6,26 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddProblemDetails();
 
-// Add Http Client Hint Options
+// Request all high-entropy User-Agent Client Hints; Sec-CH-UA and Sec-CH-UA-Mobile are requested by default
 builder.Services.AddHttpClientHints(options =>
-  {
-      options.UserAgent = true;
-      options.Platform = true;
-      options.Architecture = true;
-      options.Device = true;
-      options.Mobile = true;
-      options.Additional = ["Sec-CH-UA-Full-Version-List"];
-      options.Lifetime = TimeSpan.FromDays(31);
-  });
+{
+    options.Platform = true;
+    options.Architecture = true;
+    options.Device = true;
+    options.FullVersionList = true;
+
+    // The page shows the hints, so the browser repeats the first request once with these hints
+    options.Critical = ["Sec-CH-UA-Platform-Version", "Sec-CH-UA-Full-Version-List"];
+});
 
 WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler();
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }

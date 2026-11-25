@@ -1,43 +1,84 @@
 // Copyright © https://myCSharp.de - all rights reserved
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
 /// <summary>
-/// Middleware for processing HTTP Client Hints in ASP.NET Core requests.
-/// This middleware adds Client Hints headers to HTTP responses based on configuration.
+/// Sets the <c>Accept-CH</c> response header and, if configured, <c>Critical-CH</c>, <c>Vary</c> and the obsolete
+/// <c>Accept-CH-Lifetime</c>. Added by <see cref="HttpClientHintsRegistration.UseHttpClientHints"/>.
 /// </summary>
 /// <remarks>
-/// This middleware adds the 'Accept-CH' header and optionally the 'Accept-CH-Lifetime' header
-/// to responses when configured appropriately.
+/// The middleware stays async: a synchronous exception of the next middleware results in a faulted task, and
+/// <see cref="AsyncLocal{T}"/> changes of the next middleware do not flow back to the caller.
 /// </remarks>
-public class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<HttpClientHintsMiddlewareConfig> options)
+internal sealed class HttpClientHintsRequestMiddleware
 {
-    // Cache the options value and pre-compute conditions to avoid repeated checks
-    private readonly HttpClientHintsMiddlewareConfig _options = options.Value;
+    private readonly RequestDelegate _next;
+    private readonly HttpClientHintsMiddlewareConfig _options;
+    private readonly Func<object, Task> _restoreVary;
 
-    /// <summary>
-    /// Middleware invocation method that processes the HTTP context.
-    /// </summary>
-    /// <param name="context">The HTTP context for the current request.</param>
-    /// <returns>A <see cref="Task"/> that represents the asynchronous operation.</returns>
+    public HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<HttpClientHintsMiddlewareConfig> options)
+    {
+        _next = next;
+        _options = options.Value;
+        _restoreVary = RestoreVary;
+    }
+
     public async Task InvokeAsync(HttpContext context)
     {
-        if (_options.HasResponseHeaders)
+        if (_options.ResponseHeader is string acceptCH)
         {
-            // Set headers directly without additional checks
             IHeaderDictionary headers = context.Response.Headers;
-            headers["Accept-CH"] = _options.ResponseHeader;
+            headers["Accept-CH"] = acceptCH;
+
+            if (_options.HasCriticalHeader)
+            {
+                headers["Critical-CH"] = _options.CriticalHeader;
+            }
 
             if (_options.HasLifetime)
             {
                 headers["Accept-CH-Lifetime"] = _options.LifeTime;
             }
+
+            if (_options.HasVaryHeader)
+            {
+                IHttpResponseFeature original = context.Features.GetRequiredFeature<IHttpResponseFeature>();
+                VaryResponseFeature feature = new(original, _options);
+                _options.MergeVary(headers);
+                context.Response.OnStarting(_restoreVary, context.Response);
+                context.Features.Set<IHttpResponseFeature>(feature);
+                try
+                {
+                    await _next(context).ConfigureAwait(false);
+                }
+                finally
+                {
+                    if (ReferenceEquals(context.Features.Get<IHttpResponseFeature>(), feature))
+                    {
+                        context.Features.Set(original);
+                    }
+                }
+
+                // A cache outside this middleware can finalize a bodyless response after we return.
+                if (!context.Response.HasStarted)
+                {
+                    _options.MergeVary(context.Response.Headers);
+                }
+
+                return;
+            }
         }
 
-        // Call the next middleware in the pipeline
-        await next(context).ConfigureAwait(false);
+        await _next(context).ConfigureAwait(false);
+    }
+
+    private Task RestoreVary(object state)
+    {
+        _options.MergeVary(((HttpResponse)state).Headers);
+        return Task.CompletedTask;
     }
 }

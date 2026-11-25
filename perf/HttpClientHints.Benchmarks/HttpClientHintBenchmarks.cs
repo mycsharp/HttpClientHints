@@ -26,7 +26,10 @@ public class HttpClientHintBenchmarks
             ["Sec-CH-UA-Platform"] = "\"Windows\"",
             ["Sec-CH-UA-Platform-Version"] = "\"15.0.0\"",
             ["Sec-CH-UA-Arch"] = "\"x86\"",
-            ["Sec-CH-UA-Full-Version-List"] = "\"Chromium\";v=\"131.0.6778.85\", \"Google Chrome\";v=\"131.0.6778.85\"",
+            ["Sec-CH-UA-Bitness"] = "\"64\"",
+            ["Sec-CH-UA-WoW64"] = "?0",
+            ["Sec-CH-UA-Form-Factors"] = "\"Desktop\"",
+            ["Sec-CH-UA-Full-Version-List"] = "\"Chromium\";v=\"131.0.6778.85\", \"Not;A=Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"131.0.6778.85\"",
             ["Sec-CH-UA-Model"] = "\"\"",
             ["Sec-CH-UA-Mobile"] = "?0"
         };
@@ -49,6 +52,21 @@ public class HttpClientHintBenchmarks
         HttpClientHintsView view = _headers.GetClientHintsView();
         return (view.UA?.Length ?? 0) + (view.DecodedPlatform?.Length ?? 0)
             + (view.DecodedArchitecture?.Length ?? 0) + (view.Mobile == false ? 1 : 0);
+    }
+
+    [Benchmark]
+    public int ReadDecodedBrandLists()
+    {
+        HttpClientHintsView view = _headers.GetClientHintsView();
+        return (view.DecodedUA?.Count ?? 0) + (view.DecodedFullVersionList?.Count ?? 0);
+    }
+
+    [Benchmark]
+    public int ReadDecodedBrandListsFromCachedSnapshot()
+    {
+        // The snapshot of the request decodes the lists on the first access and returns them on every further access
+        ClientHints hints = _cachedContext.GetClientHints();
+        return (hints.DecodedUA?.Count ?? 0) + (hints.DecodedFullVersionList?.Count ?? 0);
     }
 
     [Benchmark]

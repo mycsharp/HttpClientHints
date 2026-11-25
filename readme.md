@@ -147,7 +147,10 @@ Client Hints are HTTP Structured Fields ([RFC 9651](https://www.rfc-editor.org/r
 | `Sec-CH-UA-Mobile` | | `Mobile` | `bool?` |
 | `Sec-CH-UA-WoW64` | | `Wow64` | `bool?` |
 
-The properties are available on `HttpClientHints` and `HttpClientHintsView`. The `Decoded*` properties decode the value on every access and store nothing, so reading the value as sent or building a snapshot costs nothing extra. Store the decoded value in a local variable if you need it more than once.
+The properties are available on `HttpClientHints` and `HttpClientHintsView`. No value is decoded before a `Decoded*` property is read, so reading the value as sent or building a snapshot costs nothing extra.
+
+- `HttpClientHints` decodes a value on the first access and returns the same result on every further access. `httpContext.GetClientHints()` and `IHttpClientHintsFeature.Snapshot` return the same record during a request, so every value of a request is decoded at most once. The decoded values are not part of the record equality, and a record created with `with` decodes its own values.
+- `HttpClientHintsView` reads the current headers, so its `Decoded*` properties decode on every access. Store the decoded value in a local variable if you need it more than once.
 
 ```csharp
 HttpClientHints hints = httpContext.GetClientHints();
@@ -222,7 +225,7 @@ bool? isMobile = feature?.View.Mobile;
 
 The middleware registers the feature for every request, whether or not `Accept-CH` is configured, because browsers send the low-entropy hints without a request. The registration replaces an `IHttpClientHintsFeature` registered earlier in the pipeline. Register your own implementation after `app.UseHttpClientHintsFeature()`. The feature references the `HttpContext`, so do not keep it beyond the request.
 
-Without `UseHttpClientHintsFeature()`, requests have no additional cost, and `Features.Get<IHttpClientHintsFeature>()` returns `null`. The extension methods work in both cases. With it, the feature is created for every request, even if no handler reads it. In the [benchmark](#benchmark), which reuses one `DefaultHttpContext`, the feature middleware takes about 12 ns and allocates 24 B per request. Together with `UseHttpClientHints()`, the pipeline takes about 19 ns more than `UseHttpClientHints()` alone, because `HttpContext` looks up its cached features again after the registration. The cost depends on the server: in a test with Kestrel on .NET 11, the registration allocated 24 B or 112 B per request, depending on whether Kestrel reused its request object.
+Without `UseHttpClientHintsFeature()`, requests have no additional cost, and `Features.Get<IHttpClientHintsFeature>()` returns `null`. The extension methods work in both cases. With it, the feature is created for every request, even if no handler reads it. In the [benchmark](#benchmark), which reuses one `DefaultHttpContext`, the feature middleware takes about 13 ns and allocates 24 B per request. Together with `UseHttpClientHints()`, the pipeline takes about 19 ns more than `UseHttpClientHints()` alone, because `HttpContext` looks up its cached features again after the registration. The cost depends on the server: in a test with Kestrel on .NET 11, the registration allocated 24 B or 112 B per request, depending on whether Kestrel reused its request object.
 
 ## Native AOT and trimming
 
@@ -281,7 +284,7 @@ Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Be
 ```
 BenchmarkDotNet v0.16.0-preview.2, Windows 10 (10.0.19045.7846/22H2/2022Update)
 AMD Ryzen 9 9950X 4.30GHz, 1 CPU, 32 logical and 16 physical cores
-Memory: 61,64 GB Total, 29,39 GB Available
+Memory: 61,64 GB Total, 30,41 GB Available
 .NET SDK 11.0.100
   [Host]     : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
   Job-ZRYWOI : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
@@ -292,29 +295,30 @@ WarmupCount=6
 
 ### Reading Client Hints
 
-Reading header values from the view does not allocate, and a snapshot allocates only the record. A `Decoded*` property decodes on every access: it allocates the decoded string of a quoted value, and for lists the list and its strings. `ReadDecodedBrandLists` decodes `Sec-CH-UA` and `Sec-CH-UA-Full-Version-List` with three brands each.
+Reading header values from the view does not allocate, and a snapshot allocates only the record. A `Decoded*` property of the view decodes on every access: it allocates the decoded string of a quoted value, and for lists the array and its strings. `ReadDecodedBrandLists` decodes `Sec-CH-UA` and `Sec-CH-UA-Full-Version-List` with three brands each through the view; `ReadDecodedBrandListsFromCachedSnapshot` reads them from the snapshot of the request, which has decoded them on the first access.
 
-| Method                                | Mean       | Error     | StdDev    | Gen0   | Allocated |
-|-------------------------------------- |-----------:|----------:|----------:|-------:|----------:|
-| ReadViewProperties                    |  20.197 ns | 0.0874 ns | 0.1253 ns |      - |         - |
-| ReadDecodedViewProperties             |  38.877 ns | 0.2453 ns | 0.3357 ns | 0.0042 |      72 B |
-| ReadDecodedBrandLists                 | 265.968 ns | 1.5912 ns | 2.2821 ns | 0.0433 |     744 B |
-| GetClientHintsFromHeaders             |  81.846 ns | 0.3107 ns | 0.4356 ns | 0.0061 |     104 B |
-| GetClientHintsFromHeadersWithoutHints |  68.425 ns | 0.5199 ns | 0.7289 ns | 0.0061 |     104 B |
-| GetClientHintsFromContextUncached     |  94.456 ns | 0.3579 ns | 0.5133 ns | 0.0062 |     104 B |
-| GetClientHintsFromContextCached       |   5.816 ns | 0.0214 ns | 0.0314 ns |      - |         - |
+| Method                                  | Mean       | Error     | StdDev    | Median     | Gen0   | Allocated |
+|---------------------------------------- |-----------:|----------:|----------:|-----------:|-------:|----------:|
+| ReadViewProperties                      |  21.469 ns | 0.8572 ns | 1.2017 ns |  20.664 ns |      - |         - |
+| ReadDecodedViewProperties               |  39.054 ns | 0.3240 ns | 0.4647 ns |  38.933 ns | 0.0043 |      72 B |
+| ReadDecodedBrandLists                   | 157.879 ns | 2.1842 ns | 3.2015 ns | 157.766 ns | 0.0387 |     648 B |
+| ReadDecodedBrandListsFromCachedSnapshot |  10.081 ns | 0.0575 ns | 0.0805 ns |  10.045 ns |      - |         - |
+| GetClientHintsFromHeaders               |  82.245 ns | 0.4326 ns | 0.5922 ns |  82.206 ns | 0.0070 |     120 B |
+| GetClientHintsFromHeadersWithoutHints   |  68.717 ns | 0.3436 ns | 0.5037 ns |  68.697 ns | 0.0072 |     120 B |
+| GetClientHintsFromContextUncached       |  95.799 ns | 0.5178 ns | 0.7426 ns |  95.896 ns | 0.0067 |     120 B |
+| GetClientHintsFromContextCached         |   5.823 ns | 0.0301 ns | 0.0432 ns |   5.818 ns |      - |         - |
 
 ### Middleware
 
 The middleware benchmarks run pipelines built with `ApplicationBuilder`. They reuse one `DefaultHttpContext`, and the last handler completes synchronously. `UseHttpClientHints()` is configured with `Platform = true`, sets `Accept-CH`, and does not allocate in this setup. If a later middleware completes asynchronously, it allocates its async state machine. `UseHttpClientHintsWithCriticalAndVary` also sets `Critical-CH` and appends to `Vary`; it removes the `Vary` header before every call. `UseHttpClientHintsFeature()` allocates the 24-byte feature and returns the task of the next middleware directly. Registering the feature changes the revision of the feature collection, so `HttpContext` looks up the features it has cached again. Other servers can allocate more for the registration, see [HttpContext feature](#httpcontext-feature).
 
-| Method                                | Mean     | Error    | StdDev   | Gen0   | Allocated |
-|-------------------------------------- |---------:|---------:|---------:|-------:|----------:|
-| UseHttpClientHints                    | 12.46 ns | 0.081 ns | 0.113 ns |      - |         - |
-| UseHttpClientHintsWithCriticalAndVary | 35.84 ns | 0.136 ns | 0.191 ns |      - |         - |
-| UseHttpClientHintsFeature             | 11.78 ns | 0.092 ns | 0.138 ns | 0.0014 |      24 B |
-| UseHttpClientHintsAndFeature          | 31.74 ns | 0.240 ns | 0.328 ns | 0.0013 |      24 B |
-| UseHttpClientHintsFeatureAndReadView  | 41.11 ns | 0.274 ns | 0.402 ns | 0.0013 |      24 B |
+| Method                                | Mean     | Error    | StdDev   | Median   | Gen0   | Allocated |
+|-------------------------------------- |---------:|---------:|---------:|---------:|-------:|----------:|
+| UseHttpClientHints                    | 12.49 ns | 0.053 ns | 0.078 ns | 12.52 ns |      - |         - |
+| UseHttpClientHintsWithCriticalAndVary | 36.32 ns | 0.225 ns | 0.323 ns | 36.33 ns |      - |         - |
+| UseHttpClientHintsFeature             | 12.97 ns | 0.642 ns | 0.942 ns | 12.25 ns | 0.0014 |      24 B |
+| UseHttpClientHintsAndFeature          | 31.65 ns | 0.506 ns | 0.658 ns | 31.59 ns | 0.0014 |      24 B |
+| UseHttpClientHintsFeatureAndReadView  | 45.12 ns | 1.318 ns | 1.890 ns | 45.20 ns | 0.0012 |      24 B |
 
 ## Samples
 

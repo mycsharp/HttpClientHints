@@ -76,7 +76,6 @@ public class HttpClientHintsRegistrationTests
         });
 
         Assert.Empty(config.ResponseHeader!);
-        Assert.False(config.HasResponseHeaders);
     }
 
     [Fact]

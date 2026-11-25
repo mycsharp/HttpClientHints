@@ -1,6 +1,7 @@
 // Copyright © https://myCSharp.de - all rights reserved
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
@@ -28,27 +29,47 @@ internal sealed class HttpClientHintsRequestMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (_options.HasResponseHeaders)
+        if (_options.ResponseHeader is string acceptCH)
         {
             IHeaderDictionary headers = context.Response.Headers;
-            headers["Accept-CH"] = _options.ResponseHeader;
+            headers["Accept-CH"] = acceptCH;
 
             if (_options.HasCriticalHeader)
             {
                 headers["Critical-CH"] = _options.CriticalHeader;
             }
 
-            if (_options.HasVaryHeader)
-            {
-                // Make Vary available to downstream middleware, then restore hints removed by MVC cache filters.
-                context.Features.Set(_options);
-                _options.MergeVary(headers);
-                context.Response.OnStarting(_restoreVary, context.Response);
-            }
-
             if (_options.HasLifetime)
             {
                 headers["Accept-CH-Lifetime"] = _options.LifeTime;
+            }
+
+            if (_options.HasVaryHeader)
+            {
+                IHttpResponseFeature original = context.Features.GetRequiredFeature<IHttpResponseFeature>();
+                VaryResponseFeature feature = new(original, _options);
+                _options.MergeVary(headers);
+                context.Response.OnStarting(_restoreVary, context.Response);
+                context.Features.Set<IHttpResponseFeature>(feature);
+                try
+                {
+                    await _next(context).ConfigureAwait(false);
+                }
+                finally
+                {
+                    if (ReferenceEquals(context.Features.Get<IHttpResponseFeature>(), feature))
+                    {
+                        context.Features.Set(original);
+                    }
+                }
+
+                // A cache outside this middleware can finalize a bodyless response after we return.
+                if (!context.Response.HasStarted)
+                {
+                    _options.MergeVary(context.Response.Headers);
+                }
+
+                return;
             }
         }
 

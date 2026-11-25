@@ -1,5 +1,6 @@
 // Copyright © https://myCSharp.de - all rights reserved
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -62,7 +63,7 @@ public class HttpClientHintsRequestMiddlewareTests
         DefaultHttpContext context = new();
         IOptions<HttpClientHintsMiddlewareConfig> options = Options.Create(new HttpClientHintsMiddlewareConfig
         {
-            ResponseHeader = string.Empty,
+            ResponseHeader = null,
             LifeTime = "3600"
         });
         HttpClientHintsRequestMiddleware middleware = new(context => Task.CompletedTask, options);
@@ -73,6 +74,20 @@ public class HttpClientHintsRequestMiddlewareTests
         // Assert
         Assert.False(context.Response.Headers.ContainsKey("Accept-CH"));
         Assert.False(context.Response.Headers.ContainsKey("Accept-CH-Lifetime"));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ExplicitOptOut_SendsAnEmptyAcceptCH()
+    {
+        ServiceCollection services = new();
+        services.AddHttpClientHints(static options => { options.UserAgent = false; options.Mobile = false; });
+        using ServiceProvider provider = services.BuildServiceProvider();
+        ApplicationBuilder app = new(provider);
+        app.UseHttpClientHints();
+        DefaultHttpContext context = new();
+        await app.Build()(context);
+        Assert.True(context.Response.Headers.ContainsKey("Accept-CH"));
+        Assert.Equal(string.Empty, Assert.Single(context.Response.Headers["Accept-CH"].ToArray()));
     }
 
     [Fact]
@@ -239,39 +254,102 @@ public class HttpClientHintsRequestMiddlewareTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task MvcFilter_MergesActiveHintsBeforeTheCacheCapturesTheBody(bool useMiddleware)
+    public async Task ResponseCaching_UsesTheHintsWhenAnEndpointReplacesVary(bool cacheFirst)
     {
         ServiceCollection services = new();
         services.AddLogging();
+        services.AddResponseCaching();
         services.AddHttpClientHints(static options => options.Vary = true);
         using ServiceProvider provider = services.BuildServiceProvider();
-        DefaultHttpContext context = new() { RequestServices = provider };
-        ActionContext action = new(context, new RouteData(), new ActionDescriptor());
-        ActionFilterAttribute hintsFilter = Assert.IsAssignableFrom<ActionFilterAttribute>(Assert.Single(provider.GetRequiredService<IOptions<MvcOptions>>().Value.Filters));
-        IActionFilter cacheFilter = (IActionFilter)new ResponseCacheAttribute { Duration = 60 }.CreateInstance(provider);
-        ActionExecutingContext executing = new(action, [cacheFilter, hintsFilter], new Dictionary<string, object?>(StringComparer.Ordinal), new object());
-        ResultExecutingContext result = new(action, [hintsFilter], new EmptyResult(), executing.Controller);
-
-        Task RunMvc(HttpContext ctx)
+        ApplicationBuilder app = new(provider);
+        if (cacheFirst)
         {
-            cacheFilter.OnActionExecuting(executing);
-            Assert.False(ctx.Response.Headers.ContainsKey("Vary"));
-            hintsFilter.OnActionExecuting(executing);
-            string[] expected = useMiddleware ? ["Sec-CH-UA", "Sec-CH-UA-Mobile"] : [];
-            Assert.Equal(expected, ctx.Response.Headers.GetCommaSeparatedValues("Vary"));
-            ctx.Response.Headers.Remove("Vary");
-            hintsFilter.OnResultExecuting(result);
-            Assert.Equal(expected, ctx.Response.Headers.GetCommaSeparatedValues("Vary"));
+            app.UseResponseCaching();
+        }
+
+        app.UseHttpClientHints();
+        if (!cacheFirst)
+        {
+            app.UseResponseCaching();
+        }
+
+        int executions = 0;
+        app.Run(async ctx =>
+        {
+            executions++;
+            ctx.Response.Headers.CacheControl = "public,max-age=60";
+            ctx.Response.Headers.Vary = "Accept-Language";
+            await ctx.Response.WriteAsync(ctx.Request.Headers["Sec-CH-UA-Mobile"].ToString(), ctx.RequestAborted).ConfigureAwait(false);
+        });
+        RequestDelegate pipeline = app.Build();
+
+        foreach (string hint in new[] { "?1", "?0", "?1" })
+        {
+            DefaultHttpContext ctx = new() { RequestServices = provider };
+            ctx.Request.Method = HttpMethods.Get;
+            ctx.Request.Scheme = "https";
+            ctx.Request.Host = new HostString("example.test");
+            ctx.Request.Path = "/variant";
+            ctx.Request.Headers["Sec-CH-UA-Mobile"] = hint;
+            using MemoryStream body = new();
+            ctx.Response.Body = body;
+            await pipeline(ctx);
+            Assert.Equal(hint, System.Text.Encoding.UTF8.GetString(body.ToArray()));
+            Assert.Equal(["Accept-Language", "Sec-CH-UA", "Sec-CH-UA-Mobile"], ctx.Response.Headers.GetCommaSeparatedValues("Vary"));
+        }
+
+        Assert.Equal(2, executions);
+    }
+
+    [Fact]
+    public async Task VaryFeature_ForwardsResponseOperationsAndRestoresTheOriginalOnFailure()
+    {
+        DefaultHttpContext ctx = new();
+        StartingResponseFeature original = new();
+        ctx.Features.Set<IHttpResponseFeature>(original);
+        using MemoryStream body = new();
+        HttpClientHintsMiddlewareConfig config = new() { ResponseHeader = "Sec-CH-UA", VaryHeader = "Sec-CH-UA" };
+        HttpClientHintsRequestMiddleware middleware = new(context =>
+        {
+            IHttpResponseFeature feature = context.Features.GetRequiredFeature<IHttpResponseFeature>();
+            feature.StatusCode = 201;
+            feature.ReasonPhrase = "Created";
+            Assert.Equal(201, original.StatusCode);
+            Assert.Equal(original.ReasonPhrase, feature.ReasonPhrase);
+            Assert.Equal(original.StatusCode, feature.StatusCode);
+#pragma warning disable CS0618 // The decorator must forward the legacy body feature as well.
+            feature.Body = body;
+            Assert.Same(body, feature.Body);
+#pragma warning restore CS0618
+            HeaderDictionary replacement = new();
+            feature.Headers = replacement;
+            Assert.Same(replacement, original.Headers);
+            feature.OnCompleted(static _ => Task.CompletedTask, context);
+            feature.OnStarting(static _ => Task.CompletedTask, context);
+            Assert.False(feature.HasStarted);
+            replacement.IsReadOnly = true;
+            Assert.Same(replacement, feature.Headers);
+            throw new InvalidOperationException("downstream failed");
+        }, Options.Create(config));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => middleware.InvokeAsync(ctx));
+        Assert.Same(original, ctx.Features.Get<IHttpResponseFeature>());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_PreservesAReplacementResponseFeature()
+    {
+        DefaultHttpContext ctx = new();
+        HttpResponseFeature replacement = new();
+        HttpClientHintsMiddlewareConfig config = new() { ResponseHeader = "Sec-CH-UA", VaryHeader = "Sec-CH-UA" };
+        HttpClientHintsRequestMiddleware middleware = new(context =>
+        {
+            context.Features.Set<IHttpResponseFeature>(replacement);
             return Task.CompletedTask;
-        }
-
-        RequestDelegate pipeline = RunMvc;
-        if (useMiddleware)
-        {
-            pipeline = new HttpClientHintsRequestMiddleware(pipeline, provider.GetRequiredService<IOptions<HttpClientHintsMiddlewareConfig>>()).InvokeAsync;
-        }
-
-        await pipeline(context);
+        }, Options.Create(config));
+        await middleware.InvokeAsync(ctx);
+        Assert.Same(replacement, ctx.Features.Get<IHttpResponseFeature>());
+        Assert.Equal("Sec-CH-UA", replacement.Headers.Vary);
     }
 
     private sealed class StartingResponseFeature : HttpResponseFeature

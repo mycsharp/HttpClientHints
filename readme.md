@@ -98,7 +98,7 @@ A property is `null` if the request does not contain the header. `HttpClientHint
 | `Device` | `Sec-CH-UA-Model`, `Sec-CH-UA-Form-Factors` | high | `false` |
 | `FullVersionList` | `Sec-CH-UA-Full-Version-List` | high | `false` |
 
-Browsers send the low-entropy hints with every request, also if `UserAgent` or `Mobile` is `false`. The options for high-entropy hints are `false` by default, so an application requests only the hints it enables.
+Browsers send the low-entropy hints with every request, also if `UserAgent` or `Mobile` is `false`. The options for high-entropy hints are `false` by default, so an application requests only the hints it enables. Turning every hint off sends an empty `Accept-CH` to clear an earlier opt-in for that origin.
 
 | Option | Effect |
 | --- | --- |
@@ -121,7 +121,7 @@ builder.Services.AddHttpClientHints(options =>
 });
 ```
 
-For MVC actions using `[ResponseCache]`, the integration also restores the hints before the action or result writes its body. This lets `UseResponseCaching()` include those fields in its server-side cache key.
+The ASP.NET Core response cache also sees the merged `Vary` when it selects a cache key, including when a Minimal API endpoint or MVC cache filter replaces the header.
 
 The options above produce these response headers:
 
@@ -172,7 +172,7 @@ bool isWindows = hints.DecodedPlatform == "Windows";
 
 - An absent header yields `null`. An empty header yields an empty list for the list decoders.
 - Leading and trailing spaces and tabs are ignored.
-- A list header sent in several field lines (`Sec-CH-UA`, `Sec-CH-UA-Full-Version-List`, `Sec-CH-UA-Form-Factors`) is combined with commas, as RFC 9651 requires; the property without prefix returns the combined value. Other headers use their first field line.
+- Repeated `Sec-CH-*` field lines are joined with commas before decoding. Empty lines retain their position. For example, two `Sec-CH-UA-Mobile` lines containing `?1` and `?0` yield `null`. The legacy `User-Agent` property reads the first line.
 - A malformed value yields `null`, for example an unterminated string, a list with a trailing comma, or a list member that is not a string.
 - `DecodeStructuredString` returns an unquoted value as sent, and a quoted empty value such as `""` as `string.Empty`.
 - A string, a boolean, or a member of a string list with parameters yields `null`, for example `"Windows";a=1`. Brand lists ignore all parameters except `v`.
@@ -281,7 +281,7 @@ After a release, set `PackageValidationBaselineVersion` to the released version 
 
 ## Benchmark
 
-Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Benchmarks --framework net11.0 -- --filter '*' --iterationCount 15 --iterationTime 200 --launchCount 2 --warmupCount 6`. The tables below were measured before the response-start and MVC cache-filter changes.
+Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Benchmarks --framework net11.0 -- --filter '*' --iterationCount 15 --iterationTime 200 --launchCount 2 --warmupCount 6`. The tables below were measured before the response caching changes.
 
 ```
 BenchmarkDotNet v0.16.0-preview.2, Windows 10 (10.0.19045.7846/22H2/2022Update)

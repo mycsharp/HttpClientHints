@@ -3,7 +3,6 @@
 using System.Buffers;
 using System.Globalization;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
@@ -92,10 +91,6 @@ public static class HttpClientHintsRegistration
         string acceptCH = string.Join(", ", hints);
         string criticalCH = string.Join(", ", critical);
         string vary = options.Vary ? acceptCH : criticalCH;
-        if (vary.Length > 0)
-        {
-            services.Configure<MvcOptions>(static mvc => mvc.Filters.Add(new HttpClientHintsVaryFilterAttribute()));
-        }
 
 #pragma warning disable CS0618 // Lifetime is obsolete, but still sends Accept-CH-Lifetime
         // Accept-CH-Lifetime is a number of whole seconds

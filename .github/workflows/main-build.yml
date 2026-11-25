@@ -35,9 +35,11 @@ jobs:
 
       - name: Check if tag exists
         id: check-tag
+        env:
+          TAG: v${{ needs.build-and-test.outputs.version }}
         run: |
-          TAG="v${{ needs.build-and-test.outputs.version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
+          remote_tag=$(git ls-remote --refs origin "refs/tags/$TAG")
+          if [ -n "$remote_tag" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
             echo "⚠️ Tag $TAG already exists"
           else

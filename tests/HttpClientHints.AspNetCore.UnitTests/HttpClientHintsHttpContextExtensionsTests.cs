@@ -200,19 +200,22 @@ public class HttpClientHintsHttpContextExtensionsTests
     }
 
     [Fact]
-    public void GetClientHintsView_UsesOnlyTheFirstValueOfHeadersThatAreNoLists()
+    public void GetClientHints_CombinesStructuredItemLinesBeforeDecoding()
     {
         HeaderDictionary headers = new()
         {
             ["Sec-CH-UA-Mobile"] = new StringValues(["?0", "?1"]),
-            ["Sec-CH-UA-Platform"] = new StringValues([null, "fallback"]),
+            ["Sec-CH-UA-Platform"] = new StringValues(["\"Windows\"", "\"Linux\""]),
+            ["User-Agent"] = new StringValues(["first", "second"]),
             ["Sec-CH-UA-Model"] = new StringValues(string.Empty)
         };
 
         HttpClientHintsView view = headers.GetClientHintsView();
 
-        Assert.False(view.Mobile);
-        Assert.Null(view.Platform);
+        Assert.Null(view.Mobile);
+        Assert.Null(view.BuildSnapshot().Mobile);
+        Assert.Equal("first", view.UserAgent);
+        Assert.Equal("\"Windows\",\"Linux\"", view.Platform);
         Assert.Null(view.DecodedPlatform);
         Assert.Equal(string.Empty, view.Model);
         Assert.Equal(string.Empty, view.DecodedModel);
@@ -224,7 +227,7 @@ public class HttpClientHintsHttpContextExtensionsTests
         HeaderDictionary headers = new()
         {
             ["Sec-CH-UA"] = new StringValues(["\"Chromium\";v=\"142\"", "\"Google Chrome\";v=\"142\""]),
-            ["Sec-CH-UA-Full-Version-List"] = new StringValues(["\"Chromium\";v=\"142.0.7444.60\"", null, "\"Not_A Brand\";v=\"99.0.0.0\""]),
+            ["Sec-CH-UA-Full-Version-List"] = new StringValues(["\"Chromium\";v=\"142.0.7444.60\"", "\"Not_A Brand\";v=\"99.0.0.0\""]),
             ["Sec-CH-UA-Form-Factors"] = new StringValues(["\"Desktop\"", "\"XR\""]),
         };
 
@@ -237,6 +240,24 @@ public class HttpClientHintsHttpContextExtensionsTests
             [new HttpClientHintsBrand("Chromium", "142.0.7444.60"), new HttpClientHintsBrand("Not_A Brand", "99.0.0.0")],
             snapshot.DecodedFullVersionList);
         Assert.Equal(["Desktop", "XR"], snapshot.DecodedFormFactors);
+    }
+
+    [Fact]
+    public void GetClientHints_PreservesEmptyListFieldLines()
+    {
+        HeaderDictionary headers = new()
+        {
+            ["Sec-CH-UA"] = new StringValues([string.Empty, "\"Chromium\""]),
+            ["Sec-CH-UA-Full-Version-List"] = new StringValues(["\"A\"", string.Empty, "\"B\""]),
+            ["Sec-CH-UA-Form-Factors"] = new StringValues(["\"Desktop\"", string.Empty]),
+        };
+        HttpClientHints snapshot = headers.GetClientHints();
+        Assert.Equal(",\"Chromium\"", snapshot.UA);
+        Assert.Equal("\"A\",,\"B\"", snapshot.FullVersionList);
+        Assert.Equal("\"Desktop\",", snapshot.FormFactors);
+        Assert.Null(snapshot.DecodedUA);
+        Assert.Null(snapshot.DecodedFullVersionList);
+        Assert.Null(snapshot.DecodedFormFactors);
     }
 
     [Fact]

@@ -12,18 +12,7 @@ namespace MyCSharp.HttpClientHints.AspNetCore;
 internal sealed class HttpClientHintsMiddlewareConfig
 {
     /// <summary>Gets or sets the value of the <c>Accept-CH</c> header.</summary>
-    public string? ResponseHeader
-    {
-        get;
-        set
-        {
-            field = value;
-            HasResponseHeaders = !string.IsNullOrEmpty(value);
-        }
-    }
-
-    /// <summary>Gets a value indicating whether <see cref="ResponseHeader"/> is set.</summary>
-    public bool HasResponseHeaders { get; private set; }
+    public string? ResponseHeader { get; set; }
 
     /// <summary>Gets or sets the value of the <c>Critical-CH</c> header.</summary>
     public string? CriticalHeader
@@ -71,6 +60,11 @@ internal sealed class HttpClientHintsMiddlewareConfig
 
     public void MergeVary(IHeaderDictionary headers)
     {
+        if (headers.IsReadOnly)
+        {
+            return;
+        }
+
         StringValues vary = headers.Vary;
         if (StringValues.IsNullOrEmpty(vary))
         {

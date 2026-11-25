@@ -30,7 +30,7 @@ builder.Services.AddHttpClientHints(options =>
 app.UseHttpClientHints();
 ```
 
-Without options, `Accept-CH` requests only the low-entropy hints `Sec-CH-UA` and `Sec-CH-UA-Mobile`, which browsers send with every request. The options `Platform`, `Architecture`, `Device` and `FullVersionList` request high-entropy hints and are `false` by default. [Options](https://github.com/mycsharp/HttpClientHints#options)
+Without options, `Accept-CH` requests only the low-entropy hints `Sec-CH-UA` and `Sec-CH-UA-Mobile`, which browsers send with every request. The options `Platform`, `Architecture`, `Device` and `FullVersionList` request high-entropy hints and are `false` by default. Disabling every hint sends an empty `Accept-CH` to clear an earlier opt-in. [Options](https://github.com/mycsharp/HttpClientHints#options)
 
 Read the hints of a request:
 

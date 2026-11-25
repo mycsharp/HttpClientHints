@@ -118,11 +118,27 @@ public class HttpClientHintsRegistrationTests
         Assert.Equal("Sec-CH-UA-Platform-Version", config.CriticalHeader);
     }
 
+    [Fact]
+    public void AddHttpClientHints_AcceptsFieldNamesWithLeadingAsterisk()
+    {
+        HttpClientHintsMiddlewareConfig config = GetConfig(static options =>
+        {
+            options.Additional = ["*Device"];
+            options.Critical = ["*device"];
+        });
+
+        Assert.Equal("Sec-CH-UA, Sec-CH-UA-Mobile, *Device", config.ResponseHeader);
+        Assert.Equal("*device", config.CriticalHeader);
+        Assert.Equal("*device", config.VaryHeader);
+    }
+
     [Theory]
     [InlineData("Sec CH")]
     [InlineData("Sec-CH-UA-Mobile, Sec-CH-UA-Model")]
     [InlineData("Sec-CH-UA;a=1")]
     [InlineData("1Sec-CH")]
+    [InlineData("*")]
+    [InlineData("*Device/Model")]
     [InlineData("\"Sec-CH-UA\"")]
     [InlineData("Sec-CH-Ü")]
     public void AddHttpClientHints_InvalidAdditionalName_Throws(string name)
@@ -162,6 +178,17 @@ public class HttpClientHintsRegistrationTests
         {
             CultureInfo.CurrentCulture = culture;
         }
+    }
+
+    [Fact]
+    public void AddHttpClientHints_ObsoleteLifetime_TruncatesAtTheExactSecond()
+    {
+#pragma warning disable CS0618 // Lifetime is obsolete
+        HttpClientHintsMiddlewareConfig config = GetConfig(static options =>
+            options.Lifetime = TimeSpan.FromTicks((10_000_000_000L * TimeSpan.TicksPerSecond) - 1));
+#pragma warning restore CS0618
+
+        Assert.Equal("9999999999", config.LifeTime);
     }
 
     [Fact]

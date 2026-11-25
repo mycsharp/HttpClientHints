@@ -49,13 +49,14 @@ jobs:
 
       - name: Delete existing draft releases
         if: steps.check-tag.outputs.exists == 'false'
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Checking for existing draft releases..."
           gh release list --json isDraft,tagName --jq '.[] | select(.isDraft) | .tagName' | while read -r tag_name; do
             echo "Deleting existing draft release: $tag_name"
-            gh release delete "$tag_name" --yes --cleanup-tag || echo "Failed to delete release $tag_name"
+            gh release delete "$tag_name" --yes
           done
 
       - name: Create Draft Release

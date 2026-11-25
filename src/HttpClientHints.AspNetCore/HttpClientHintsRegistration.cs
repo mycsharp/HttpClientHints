@@ -94,7 +94,7 @@ public static class HttpClientHintsRegistration
 
 #pragma warning disable CS0618 // Lifetime is obsolete, but still sends Accept-CH-Lifetime
         // Accept-CH-Lifetime is a number of whole seconds
-        string? lifetime = options.Lifetime is TimeSpan value ? ((long)value.TotalSeconds).ToString(CultureInfo.InvariantCulture) : null;
+        string? lifetime = options.Lifetime is TimeSpan value ? (value.Ticks / TimeSpan.TicksPerSecond).ToString(CultureInfo.InvariantCulture) : null;
 #pragma warning restore CS0618
 
         services.Configure<HttpClientHintsMiddlewareConfig>(o =>
@@ -154,7 +154,9 @@ public static class HttpClientHintsRegistration
             }
 
             // Accept-CH is a Structured Field list of tokens: one invalid entry makes browsers ignore the whole header
-            if (!char.IsAsciiLetter(name[0]) || name.AsSpan().ContainsAnyExcept(s_headerNameCharacters))
+            // A token may start with '*', but the field name "*" itself is reserved (RFC 9110 section 18.4).
+            bool validStart = char.IsAsciiLetter(name[0]) || (name[0] == '*' && name.Length > 1);
+            if (!validStart || name.AsSpan().ContainsAnyExcept(s_headerNameCharacters))
             {
                 return entry;
             }

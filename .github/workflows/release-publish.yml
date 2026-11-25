@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag of the GitHub release whose packages to publish, for example v3.2.3'
+        description: 'Tag of the published GitHub release whose packages to publish, for example v3.2.3'
         required: true
         type: string
 
@@ -27,6 +27,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
+          is_draft=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')
+          if [ "$is_draft" != "false" ]; then
+            echo "Release $RELEASE_TAG must be published before its packages can be downloaded for publishing." >&2
+            exit 1
+          fi
           gh release download "$RELEASE_TAG" \
             --pattern "*.nupkg" \
             --dir ./artifacts \

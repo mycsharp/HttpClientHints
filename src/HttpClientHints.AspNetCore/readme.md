@@ -36,13 +36,13 @@ Read the hints of a request:
 
 ```csharp
 HttpClientHints hints = httpContext.GetClientHints(); // reads the headers once per request
-HttpClientHintsView view = httpContext.GetClientHintsView(); // reads the headers on every access, does not allocate
+HttpClientHintsView view = httpContext.GetClientHintsView(); // creating the view does not allocate
 string? platform = view.DecodedPlatform; // Windows instead of "Windows"
 bool? isMobile = view.Mobile;
 IReadOnlyList<HttpClientHintsBrand>? brands = view.DecodedFullVersionList; // brands with full versions
 ```
 
-All properties are `null` if the request does not contain the header.
+Each hint property returns `null` when its header is absent. Reading a single raw field line does not allocate. Reading repeated Client Hint lines joins them into a string on each access through the view.
 
 ## Decoded values
 

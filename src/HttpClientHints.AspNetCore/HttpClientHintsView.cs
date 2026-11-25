@@ -9,8 +9,8 @@ namespace MyCSharp.HttpClientHints.AspNetCore;
 /// A view over <see cref="IHeaderDictionary"/> to access HTTP Client Hints lazily.
 /// </summary>
 /// <remarks>
-/// Creating the view and reading header values do not allocate. The <c>Decoded*</c> properties decode the value on
-/// every access: they allocate the decoded string of a quoted value, and a list for list values.
+/// Creating the view and reading a single raw field line do not allocate. The <c>Decoded*</c> properties decode the
+/// value on every access and can allocate strings and lists.
 /// Use <see cref="BuildSnapshot"/> to materialize a heap-allocated <see cref="HttpClientHints"/> record if needed.
 /// Repeated Structured Field lines are combined with commas, preserving empty lines. Combining multiple lines allocates a string.
 /// </remarks>
@@ -109,7 +109,7 @@ public readonly struct HttpClientHintsView(IHeaderDictionary headers)
         => HttpClientHintsInterpreter.IsMobile(GetStructuredValue("Sec-CH-UA-Mobile"));
 
     /// <summary>
-    /// Materializes a snapshot record of the current values. This allocates one object.
+    /// Allocates a snapshot record of the current values and combines any repeated Structured Field lines.
     /// </summary>
     public HttpClientHints BuildSnapshot()
         => new(UserAgent, Platform, PlatformVersion, Architecture, Model, FullVersionList, UA, Mobile, headers)

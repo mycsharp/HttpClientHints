@@ -68,7 +68,7 @@ Read the Client Hints with the extension methods for `HttpContext` and `IHeaderD
 | API | Returns | Behavior |
 | --- | --- | --- |
 | `httpContext.GetClientHints()` | `HttpClientHints` record | Reads the headers on the first call and returns the same instance for every further call during the request. |
-| `httpContext.GetClientHintsView()` | `HttpClientHintsView` struct | Reads the current request headers on every property access. Creating the view and reading header values do not allocate. |
+| `httpContext.GetClientHintsView()` | `HttpClientHintsView` struct | Reads the current request headers on every property access. Reading one raw field line does not allocate. Reading repeated Client Hint lines joins them into a string. |
 
 `GetClientHints()` and `GetClientHintsView()` are also available on `IHeaderDictionary`. `GetClientHints()` on headers builds a new record on every call. A separate middleware also provides the hints as an `HttpContext` feature, see [HttpContext feature](#httpcontext-feature).
 
@@ -269,7 +269,7 @@ Every push to `main` builds and tests the solution and creates a draft GitHub re
 
 The draft release groups the merged pull requests by label. `.github/workflows/pr-labeler.yml` updates the managed category when a pull request title changes and preserves area labels. The category comes from the Conventional Commits type in the title, for example `feat:` for features, `fix:` for bug fixes and `chore:` or `ci:` for maintenance. A title with `!`, such as `feat!:`, marks a breaking change, which the release notes list first.
 
-To publish the packages of an existing release again, run the workflow manually with the release tag:
+To retry a NuGet publication, run the workflow manually with the tag of a published GitHub release.
 
 ```shell
 gh workflow run release-publish.yml -f tag=v3.3.5
@@ -297,7 +297,7 @@ WarmupCount=6
 
 ### Reading Client Hints
 
-Reading header values from the view does not allocate, and a snapshot allocates only the record. A `Decoded*` property of the view decodes on every access: it allocates the decoded string of a quoted value, and for lists the array and its strings. `ReadDecodedBrandLists` decodes `Sec-CH-UA` and `Sec-CH-UA-Full-Version-List` with three brands each through the view; `ReadDecodedBrandListsFromCachedSnapshot` reads them from the snapshot of the request, which has decoded them on the first access.
+The benchmark uses one field line per header. For these inputs, reading raw values from the view does not allocate, and building a snapshot allocates only the record. A `Decoded*` property of the view decodes on every access and can allocate strings and arrays. `ReadDecodedBrandLists` decodes `Sec-CH-UA` and `Sec-CH-UA-Full-Version-List` with three brands each through the view. `ReadDecodedBrandListsFromCachedSnapshot` reads the values cached on first access.
 
 | Method                                  | Mean       | Error     | StdDev    | Median     | Gen0   | Allocated |
 |---------------------------------------- |-----------:|----------:|----------:|-----------:|-------:|----------:|

@@ -107,7 +107,7 @@ Browsers send the low-entropy hints with every request, also if `UserAgent` or `
 | `Vary` | Adds all requested hints to the `Vary` response header. Enable it if responses that depend on the hints can be cached. `false` by default. |
 | `Lifetime` | Obsolete. Sets the `Accept-CH-Lifetime` header, which was removed from the Client Hints specification and which browsers ignore. |
 
-`AddHttpClientHints` reads the options once. Empty entries and duplicates in `Additional` and `Critical` are ignored; duplicates are compared ignoring case. The middleware appends its `Vary` values to a `Vary` header that was set before it.
+`AddHttpClientHints` reads the options once. It removes surrounding white space from the entries of `Additional` and `Critical` and ignores empty entries and duplicates; duplicates are compared ignoring case. An entry that is not a valid header name, for example `Sec CH` or two names separated by a comma, makes `AddHttpClientHints` throw an `ArgumentException`: browsers would ignore the whole `Accept-CH` header. The middleware appends its `Vary` values to a `Vary` header that was set before it, once per response, also if the pipeline runs again for the same response.
 
 ```csharp
 builder.Services.AddHttpClientHints(options =>
@@ -167,6 +167,7 @@ bool isWindows = hints.DecodedPlatform == "Windows";
 
 - An absent header yields `null`. An empty header yields an empty list for the list decoders.
 - Leading and trailing spaces and tabs are ignored.
+- A list header sent in several field lines (`Sec-CH-UA`, `Sec-CH-UA-Full-Version-List`, `Sec-CH-UA-Form-Factors`) is combined with commas, as RFC 9651 requires; the property without prefix returns the combined value. Other headers use their first field line.
 - A malformed value yields `null`, for example an unterminated string, a list with a trailing comma, or a list member that is not a string.
 - `DecodeStructuredString` returns an unquoted value as sent, and a quoted empty value such as `""` as `string.Empty`.
 - A string, a boolean, or a member of a string list with parameters yields `null`, for example `"Windows";a=1`. Brand lists ignore all parameters except `v`.
@@ -181,7 +182,7 @@ bool isWindows = hints.DecodedPlatform == "Windows";
 | `Version` | The value of the parameter `v`: the major version in `Sec-CH-UA`, the full version in `Sec-CH-UA-Full-Version-List`. `null` if the member has no `v` parameter with a string value. |
 | `IsGrease` | `true` for the brand with a changing name that Chromium-based browsers add, so that servers do not depend on a fixed list of brands |
 
-`IsGrease` recognizes brands that consist of `Not`, one of the characters ` ()-./:;=?_`, `A`, one of these characters, and `Brand`, for example `Not_A Brand` or `Not)A;Brand`. Leading spaces are ignored.
+`IsGrease` recognizes brands that consist of the letters `NotABrand` in this order and any of the characters ` ()-./:;=?_"\`. This covers the forms of current Chromium-based browsers, such as `Not_A Brand` or `Not)A;Brand`, and of older versions, such as ` Not A;Brand` or `"Not\A;Brand`.
 
 ```csharp
 // Sec-CH-UA-Full-Version-List: "Chromium";v="142.0.7444.60", "Google Chrome";v="142.0.7444.60", "Not_A Brand";v="99.0.0.0"
@@ -221,7 +222,7 @@ bool? isMobile = feature?.View.Mobile;
 
 The middleware registers the feature for every request, whether or not `Accept-CH` is configured, because browsers send the low-entropy hints without a request. The registration replaces an `IHttpClientHintsFeature` registered earlier in the pipeline. Register your own implementation after `app.UseHttpClientHintsFeature()`. The feature references the `HttpContext`, so do not keep it beyond the request.
 
-Without `UseHttpClientHintsFeature()`, requests have no additional cost, and `Features.Get<IHttpClientHintsFeature>()` returns `null`. The extension methods work in both cases. With it, the feature is created for every request, even if no handler reads it. In the [benchmark](#benchmark), which reuses one `DefaultHttpContext`, the feature middleware takes about 12 ns and allocates 24 B per request. Together with `UseHttpClientHints()`, the pipeline takes about 21 ns more than `UseHttpClientHints()` alone, because `HttpContext` looks up its cached features again after the registration. The cost depends on the server: in a test with Kestrel on .NET 11, the registration allocated 24 B or 112 B per request, depending on whether Kestrel reused its request object.
+Without `UseHttpClientHintsFeature()`, requests have no additional cost, and `Features.Get<IHttpClientHintsFeature>()` returns `null`. The extension methods work in both cases. With it, the feature is created for every request, even if no handler reads it. In the [benchmark](#benchmark), which reuses one `DefaultHttpContext`, the feature middleware takes about 12 ns and allocates 24 B per request. Together with `UseHttpClientHints()`, the pipeline takes about 19 ns more than `UseHttpClientHints()` alone, because `HttpContext` looks up its cached features again after the registration. The cost depends on the server: in a test with Kestrel on .NET 11, the registration allocated 24 B or 112 B per request, depending on whether Kestrel reused its request object.
 
 ## Native AOT and trimming
 
@@ -249,7 +250,7 @@ dotnet build -c Release
 dotnet test -c Release --no-build
 ```
 
-Line and branch coverage of both packages must stay at 100 %. CI collects coverage on every build and fails below this threshold. `./eng/Assert-CodeCoverage.ps1` reads the Cobertura report of every test project and target framework and takes, for every line, the highest coverage of any report, because the report that `dotnet test` merges keeps the hits of only one test project for a package. Run the same check locally with `just test-cov`, or call the script after a test run with `--coverage --coverage-output-format cobertura`.
+Line and branch coverage of both packages must stay at 100 %. CI collects coverage on every build and fails below this threshold. `./eng/Assert-CodeCoverage.ps1` reads the Cobertura report of every test project and target framework, because the report that `dotnet test` merges keeps the hits of only one test project for a package. A line of a class counts as covered if any report covers it; for branches, the highest number of covered branches of any report counts. Run the same check locally with `just test-cov`, or call the script after a test run with `--coverage --coverage-output-format cobertura` into an empty results directory: the script also reads reports of earlier runs.
 
 CI also checks the formatting with `dotnet format --verify-no-changes`. Run the same check locally with `just format-check`.
 
@@ -278,7 +279,7 @@ Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Be
 ```
 BenchmarkDotNet v0.16.0-preview.2, Windows 10 (10.0.19045.7846/22H2/2022Update)
 AMD Ryzen 9 9950X 4.30GHz, 1 CPU, 32 logical and 16 physical cores
-Memory: 61,64 GB Total, 36,39 GB Available
+Memory: 61,64 GB Total, 29,39 GB Available
 .NET SDK 11.0.100
   [Host]     : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
   Job-ZRYWOI : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
@@ -293,25 +294,25 @@ Reading header values from the view does not allocate, and a snapshot allocates 
 
 | Method                                | Mean       | Error     | StdDev    | Gen0   | Allocated |
 |-------------------------------------- |-----------:|----------:|----------:|-------:|----------:|
-| ReadViewProperties                    |  20.448 ns | 0.1284 ns | 0.1800 ns |      - |         - |
-| ReadDecodedViewProperties             |  39.054 ns | 0.2218 ns | 0.2961 ns | 0.0043 |      72 B |
-| ReadDecodedBrandLists                 | 273.977 ns | 3.2699 ns | 4.7930 ns | 0.0440 |     744 B |
-| GetClientHintsFromHeaders             |  83.555 ns | 0.7852 ns | 1.1509 ns | 0.0062 |     104 B |
-| GetClientHintsFromHeadersWithoutHints |  70.374 ns | 0.6799 ns | 0.9307 ns | 0.0060 |     104 B |
-| GetClientHintsFromContextUncached     |  97.277 ns | 1.4458 ns | 2.1193 ns | 0.0061 |     104 B |
-| GetClientHintsFromContextCached       |   5.910 ns | 0.0533 ns | 0.0764 ns |      - |         - |
+| ReadViewProperties                    |  20.197 ns | 0.0874 ns | 0.1253 ns |      - |         - |
+| ReadDecodedViewProperties             |  38.877 ns | 0.2453 ns | 0.3357 ns | 0.0042 |      72 B |
+| ReadDecodedBrandLists                 | 265.968 ns | 1.5912 ns | 2.2821 ns | 0.0433 |     744 B |
+| GetClientHintsFromHeaders             |  81.846 ns | 0.3107 ns | 0.4356 ns | 0.0061 |     104 B |
+| GetClientHintsFromHeadersWithoutHints |  68.425 ns | 0.5199 ns | 0.7289 ns | 0.0061 |     104 B |
+| GetClientHintsFromContextUncached     |  94.456 ns | 0.3579 ns | 0.5133 ns | 0.0062 |     104 B |
+| GetClientHintsFromContextCached       |   5.816 ns | 0.0214 ns | 0.0314 ns |      - |         - |
 
 ### Middleware
 
 The middleware benchmarks run pipelines built with `ApplicationBuilder`. They reuse one `DefaultHttpContext`, and the last handler completes synchronously. `UseHttpClientHints()` is configured with `Platform = true`, sets `Accept-CH`, and does not allocate in this setup. If a later middleware completes asynchronously, it allocates its async state machine. `UseHttpClientHintsWithCriticalAndVary` also sets `Critical-CH` and appends to `Vary`; it removes the `Vary` header before every call. `UseHttpClientHintsFeature()` allocates the 24-byte feature and returns the task of the next middleware directly. Registering the feature changes the revision of the feature collection, so `HttpContext` looks up the features it has cached again. Other servers can allocate more for the registration, see [HttpContext feature](#httpcontext-feature).
 
-| Method                                | Mean     | Error    | StdDev   | Median   | Gen0   | Allocated |
-|-------------------------------------- |---------:|---------:|---------:|---------:|-------:|----------:|
-| UseHttpClientHints                    | 12.66 ns | 0.152 ns | 0.223 ns | 12.59 ns |      - |         - |
-| UseHttpClientHintsWithCriticalAndVary | 33.08 ns | 0.324 ns | 0.484 ns | 32.95 ns |      - |         - |
-| UseHttpClientHintsFeature             | 11.82 ns | 0.268 ns | 0.393 ns | 11.67 ns | 0.0014 |      24 B |
-| UseHttpClientHintsAndFeature          | 34.05 ns | 1.696 ns | 2.378 ns | 32.52 ns | 0.0014 |      24 B |
-| UseHttpClientHintsFeatureAndReadView  | 45.81 ns | 2.603 ns | 3.815 ns | 42.71 ns | 0.0013 |      24 B |
+| Method                                | Mean     | Error    | StdDev   | Gen0   | Allocated |
+|-------------------------------------- |---------:|---------:|---------:|-------:|----------:|
+| UseHttpClientHints                    | 12.46 ns | 0.081 ns | 0.113 ns |      - |         - |
+| UseHttpClientHintsWithCriticalAndVary | 35.84 ns | 0.136 ns | 0.191 ns |      - |         - |
+| UseHttpClientHintsFeature             | 11.78 ns | 0.092 ns | 0.138 ns | 0.0014 |      24 B |
+| UseHttpClientHintsAndFeature          | 31.74 ns | 0.240 ns | 0.328 ns | 0.0013 |      24 B |
+| UseHttpClientHintsFeatureAndReadView  | 41.11 ns | 0.274 ns | 0.402 ns | 0.0013 |      24 B |
 
 ## Samples
 

@@ -45,6 +45,9 @@ jobs:
         with:
           fetch-depth: 0 # NBGV calculates the version from Git history
 
+      - name: Test release draft ownership and retries
+        run: python3 -B -m unittest discover -s tests/workflows
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
@@ -89,6 +92,20 @@ jobs:
       # Every build packs: package validation compares the API with the baseline version on NuGet.org
       - name: Pack and validate NuGet packages
         run: dotnet pack --configuration ${{ inputs.configuration }} --no-build --output ./artifacts /p:PackageVersion=${{ steps.nbgv.outputs.SemVer2 }}
+
+      - name: Run the public API smoke test against the packed NuGet files
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.nbgv.outputs.SemVer2 }}
+        run: |
+          consumer=$(mktemp -d)
+          export NUGET_PACKAGES="$consumer/packages"
+          dotnet new console --name Consumer --output "$consumer" --framework net11.0 --no-restore
+          cp tests/HttpClientHints.NativeAot.Smoke/Program.cs "$consumer/Program.cs"
+          project="$consumer/Consumer.csproj"
+          dotnet add "$project" package MyCSharp.HttpClientHints.AspNetCore --version "$PACKAGE_VERSION" --no-restore
+          dotnet restore "$project" --source "$PWD/artifacts" -p:NuGetAudit=false
+          dotnet run --project "$project" --configuration Release --no-restore
 
       - name: Upload NuGet packages
         if: inputs.create-pack

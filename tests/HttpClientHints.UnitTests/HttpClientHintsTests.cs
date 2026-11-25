@@ -114,6 +114,24 @@ public class HttpClientHintsTests
     }
 
     [Fact]
+    public void DecodedLists_ProtectTheCachedSnapshotFromMutation()
+    {
+        HttpClientHints hints = Create(null, null, null, null) with
+        {
+            FormFactors = "\"Desktop\"",
+            UA = "\"Browser\";v=\"1\"",
+            FullVersionList = "\"Browser\";v=\"1.0\"",
+        };
+
+        Assert.Throws<NotSupportedException>(() => ((IList<string>)hints.DecodedFormFactors!)[0] = "XR");
+        Assert.Throws<NotSupportedException>(() => ((IList<HttpClientHintsBrand>)hints.DecodedUA!)[0] = default);
+        Assert.Throws<NotSupportedException>(() => ((IList<HttpClientHintsBrand>)hints.DecodedFullVersionList!)[0] = default);
+        Assert.Equal("Desktop", Assert.Single(hints.DecodedFormFactors!));
+        Assert.Equal(new HttpClientHintsBrand("Browser", "1"), Assert.Single(hints.DecodedUA!));
+        Assert.Equal(new HttpClientHintsBrand("Browser", "1.0"), Assert.Single(hints.DecodedFullVersionList!));
+    }
+
+    [Fact]
     public void DecodedProperties_KeepNullResults()
     {
         HttpClientHints hints = Create("\"Windows", null, null, null);

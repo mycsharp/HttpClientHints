@@ -1,0 +1,20 @@
+changelog:
+  exclude:
+    labels: [skip-changelog, wip]
+  categories:
+    - title: '💥 Breaking Changes'
+      labels: [breaking-change]
+    - title: '🚀 Features'
+      labels: [feature, enhancement]
+    - title: '🐛 Bug Fixes'
+      labels: [bug, fix]
+    - title: '🔧 Maintenance'
+      labels: [maintenance, chore, refactor, dependencies]
+    - title: '📚 Documentation'
+      labels: [documentation, docs]
+    - title: '⚡ Performance'
+      labels: [performance]
+    - title: '🔒 Security'
+      labels: [security]
+    - title: Other changes
+      labels: ['*']

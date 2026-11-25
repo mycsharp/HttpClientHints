@@ -77,18 +77,44 @@ internal sealed class HttpClientHintsMiddlewareConfig
             return;
         }
 
-        string[] existing = headers.GetCommaSeparatedValues("Vary");
-        if (existing.Contains("*", StringComparer.Ordinal))
+        if (ContainsVaryName(headers, vary, "*"))
         {
             return;
         }
 
         foreach (string hint in VaryNames)
         {
-            if (!existing.Contains(hint, StringComparer.OrdinalIgnoreCase))
+            if (!ContainsVaryName(headers, vary, hint))
             {
                 headers.Append("Vary", hint);
             }
         }
+    }
+
+    private static bool ContainsVaryName(IHeaderDictionary headers, StringValues vary, string name)
+    {
+        foreach (string? line in vary)
+        {
+            ReadOnlySpan<char> remaining = line.AsSpan();
+            if (remaining.Contains('"'))
+            {
+                // Preserve the framework's handling of nonstandard quoted field names and embedded commas.
+                return headers.GetCommaSeparatedValues("Vary").Contains(name, StringComparer.OrdinalIgnoreCase);
+            }
+
+            while (!remaining.IsEmpty)
+            {
+                int comma = remaining.IndexOf(',');
+                ReadOnlySpan<char> field = comma < 0 ? remaining : remaining[..comma];
+                if (field.Trim(" \t").Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                remaining = comma < 0 ? default : remaining[(comma + 1)..];
+            }
+        }
+
+        return false;
     }
 }

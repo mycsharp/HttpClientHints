@@ -21,7 +21,10 @@ For ASP.NET Core, install [MyCSharp.HttpClientHints.AspNetCore](https://nubrowse
 ## Decode header values
 
 ```csharp
+using MyCSharp.HttpClientHints;
+
 string? platform = HttpClientHintsInterpreter.DecodeStructuredString("\"Windows\""); // Windows
+string? unquoted = HttpClientHintsInterpreter.DecodeStructuredString("Windows"); // Windows, returned as received
 bool? wow64 = HttpClientHintsInterpreter.DecodeStructuredBoolean("?0"); // false
 IReadOnlyList<string>? formFactors = HttpClientHintsInterpreter.DecodeStructuredStringList("\"Desktop\", \"XR\""); // Desktop, XR
 
@@ -30,4 +33,4 @@ IReadOnlyList<HttpClientHintsBrand>? brands = HttpClientHintsInterpreter.DecodeB
 // [1]: Brand = Not_A Brand, Version = 99, IsGrease = true
 ```
 
-A missing or malformed value yields `null`. `IsGrease` identifies the brand with a changing name that Chromium-based browsers add to the brand lists. [Decoded values](https://github.com/mycsharp/HttpClientHints#decoded-values)
+Missing values, malformed quoted strings and invalid boolean or list values yield `null`. `DecodeStructuredString` also accepts unquoted input and returns that input unchanged. `IsGrease` identifies the brand with a changing name that Chromium-based browsers add to the brand lists. [Decoded values](https://github.com/mycsharp/HttpClientHints#decoded-values)

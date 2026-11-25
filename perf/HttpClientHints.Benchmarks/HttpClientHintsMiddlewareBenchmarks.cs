@@ -16,6 +16,7 @@ public class HttpClientHintsMiddlewareBenchmarks
     private RequestDelegate _featurePipeline = null!;
     private RequestDelegate _bothPipeline = null!;
     private RequestDelegate _criticalAndVaryPipeline = null!;
+    private RequestDelegate _readMixedVaryPipeline = null!;
     private ServiceProvider _criticalAndVaryServiceProvider = null!;
     private DefaultHttpContext _context = null!;
 
@@ -39,6 +40,19 @@ public class HttpClientHintsMiddlewareBenchmarks
         _featurePipeline = BuildPipeline(_serviceProvider, static app => app.UseHttpClientHintsFeature());
         _bothPipeline = BuildPipeline(_serviceProvider, static app => app.UseHttpClientHints().UseHttpClientHintsFeature());
         _criticalAndVaryPipeline = BuildPipeline(_criticalAndVaryServiceProvider, static app => app.UseHttpClientHints());
+        _readMixedVaryPipeline = BuildPipeline(_criticalAndVaryServiceProvider, static app =>
+        {
+            app.UseHttpClientHints();
+            app.Run(static context =>
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    _ = context.Response.Headers.Count;
+                }
+
+                return Task.CompletedTask;
+            });
+        });
 
         // Every invocation reuses this context. Servers such as Kestrel allocate differently when a feature is registered.
         _context = new DefaultHttpContext();
@@ -63,6 +77,13 @@ public class HttpClientHintsMiddlewareBenchmarks
         // Vary is appended, so the response headers are reset like for a new response.
         _context.Response.Headers.Remove("Vary");
         return _criticalAndVaryPipeline(_context);
+    }
+
+    [Benchmark]
+    public Task ReadHeadersTenTimesWithMixedVary()
+    {
+        _context.Response.Headers.Vary = "Accept-Encoding, Sec-CH-UA, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version, Sec-CH-UA-Mobile";
+        return _readMixedVaryPipeline(_context);
     }
 
     [Benchmark]

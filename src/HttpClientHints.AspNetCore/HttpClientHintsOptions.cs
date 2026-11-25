@@ -78,7 +78,8 @@ public class HttpClientHintsOptions
     /// <remarks>
     /// Enable it if responses that depend on the hints can be cached. The middleware merges missing field names
     /// into <c>Vary</c> before the response starts. Hints in <see cref="Critical"/> are always included unless
-    /// <c>Vary: *</c> already covers all fields.
+    /// <c>Vary: *</c> already covers all fields. When using ASP.NET Core Output Caching, also configure
+    /// the endpoint policy with <c>SetVaryByHeader</c> for each request header that changes its response.
     /// </remarks>
     public bool Vary { get; set; }
 

@@ -22,20 +22,16 @@ jobs:
       id-token: write # Request the GitHub OIDC token for NuGet Trusted Publishing
 
     steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: eng
+          persist-credentials: false
+
       - name: Download release assets
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: |
-          is_draft=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')
-          if [ "$is_draft" != "false" ]; then
-            echo "Release $RELEASE_TAG must be published before its packages can be downloaded for publishing." >&2
-            exit 1
-          fi
-          gh release download "$RELEASE_TAG" \
-            --pattern "*.nupkg" \
-            --dir ./artifacts \
-            --repo "${{ github.repository }}"
+        run: python3 -m eng.download_release_packages
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5

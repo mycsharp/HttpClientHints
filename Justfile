@@ -6,6 +6,7 @@ set shell := ["pwsh", "-c"]
 # ===== Configurable defaults =====
 CONFIG  := "Debug"
 TFM     := "net11.0"
+APP_PRJ := "samples/HttpClientHints.Samples.AspNetCoreMvc/HttpClientHints.Samples.AspNetCoreMvc.csproj"
 BENCH_PRJ := "perf/HttpClientHints.Benchmarks/HttpClientHints.Benchmarks.csproj"
 COV_DIR := "TestResults/coverage"
 COV_MIN := "100"
@@ -35,7 +36,7 @@ clean:
     dotnet clean --configuration "{{CONFIG}}" --nologo
 
 run *ARGS:
-    dotnet run --project --framework "{{TFM}}" --configuration "{{CONFIG}}" --no-launch-profile {{ARGS}}
+    dotnet run --project "{{APP_PRJ}}" --framework "{{TFM}}" --configuration "{{CONFIG}}" --no-launch-profile {{ARGS}}
 
 # ===== Quality / Tests =====
 format:
@@ -61,10 +62,10 @@ pack *ARGS:
     dotnet pack --configuration "{{CONFIG}}" --nologo --verbosity minimal -o "./artifacts/packages" {{ARGS}}
 
 publish *ARGS:
-    dotnet publish --configuration "{{CONFIG}}" --framework "{{TFM}}" --nologo --verbosity minimal -o "./artifacts/publish/{{TFM}}" {{ARGS}}
+    dotnet publish "{{APP_PRJ}}" --configuration "{{CONFIG}}" --framework "{{TFM}}" --nologo --verbosity minimal -o "./artifacts/publish/{{TFM}}" {{ARGS}}
 
 publish-sc RID *ARGS:
-    dotnet publish --configuration "{{CONFIG}}" --framework "{{TFM}}" --runtime "{{RID}}" --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false --nologo --verbosity minimal -o "./artifacts/publish/{{TFM}}-{{RID}}" {{ARGS}}
+    dotnet publish "{{APP_PRJ}}" --configuration "{{CONFIG}}" --framework "{{TFM}}" --runtime "{{RID}}" --self-contained true --nologo --verbosity minimal -o "./artifacts/publish/{{TFM}}-{{RID}}" {{ARGS}}
 
 # ===== Benchmarks =====
 bench *ARGS:

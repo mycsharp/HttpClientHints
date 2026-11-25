@@ -43,7 +43,6 @@
   <PropertyGroup Label="Package">
     <NBGV_EmitThisAssemblyClass>false</NBGV_EmitThisAssemblyClass>
     <IsPackable>false</IsPackable>
-    <NoPackageAnalysis>true</NoPackageAnalysis>
     <MinClientVersion>2.12</MinClientVersion>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
 

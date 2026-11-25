@@ -104,7 +104,7 @@ Browsers send the low-entropy hints with every request, also if `UserAgent` or `
 | --- | --- |
 | `Additional` | Further hints for `Accept-CH`, for example `Sec-CH-Prefers-Color-Scheme`. |
 | `Critical` | Hints for the `Critical-CH` response header. They are also added to `Accept-CH` and `Vary`. A browser that supports `Critical-CH` and did not send one of these hints repeats the request once with the hint. |
-| `Vary` | Adds all requested hints to the `Vary` response header. Enable it if responses that depend on the hints can be cached. `false` by default. |
+| `Vary` | Adds all requested hints to the HTTP `Vary` response header. Enable it for cacheable responses that depend on those hints. ASP.NET Core Output Caching also needs an [endpoint cache policy](#aspnet-core-output-caching). `false` by default. |
 | `Lifetime` | Obsolete. Sets the `Accept-CH-Lifetime` header, which was removed from the Client Hints specification and which browsers ignore. |
 
 `AddHttpClientHints` reads the options once. It removes surrounding white space from the entries of `Additional` and `Critical` and ignores empty entries and duplicates; duplicates are compared ignoring case. An entry that is not a valid header name, for example `Sec CH` or two names separated by a comma, makes `AddHttpClientHints` throw an `ArgumentException`: browsers would ignore the whole `Accept-CH` header. The middleware merges missing field names into `Vary` before the response starts, including when MVC replaces the header with `[ResponseCache]`. It compares names ignoring case and preserves `Vary: *`.
@@ -129,6 +129,26 @@ The options above produce these response headers:
 Accept-CH: Sec-CH-UA, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version, Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-WoW64, Sec-CH-UA-Model, Sec-CH-UA-Form-Factors, Sec-CH-UA-Mobile, Sec-CH-UA-Full-Version-List, Sec-CH-Prefers-Color-Scheme
 Critical-CH: Sec-CH-UA-Platform-Version
 Vary: Sec-CH-UA-Platform-Version
+```
+
+### ASP.NET Core Output Caching
+
+`UseOutputCache()` uses an endpoint policy to select its cache key. Include each request header that changes the endpoint's response. This example caches separate layouts for the two values of `Sec-CH-UA-Mobile` and sends `Vary` to downstream HTTP caches.
+
+```csharp
+using MyCSharp.HttpClientHints.AspNetCore;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddHttpClientHints(options => options.Vary = true);
+builder.Services.AddOutputCache();
+
+var app = builder.Build();
+app.UseHttpClientHints();
+app.UseOutputCache();
+app.MapGet("/layout", (HttpContext context) =>
+    context.GetClientHintsView().Mobile is true ? "mobile" : "desktop")
+    .CacheOutput(policy => policy.SetVaryByHeader("Sec-CH-UA-Mobile"));
+app.Run();
 ```
 
 ## Decoded values
@@ -265,9 +285,11 @@ Changes reach `main` only through pull requests. A pull request can be merged wh
 
 ## Release
 
-Every push to `main` builds and tests the solution and creates a draft GitHub release with the NuGet packages. Publishing that release runs `.github/workflows/release-publish.yml`, which pushes the packages to NuGet.org with [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing). The workflow exchanges a GitHub OIDC token for a NuGet API key that is valid for one hour, so the repository stores no NuGet API key.
+Every push to `main` builds and tests the solution. The release job checks the current head of `main` and updates the draft marked as managed by `main-build.yml`. The job attaches both NuGet packages to the draft for that commit. Publishing the release runs `.github/workflows/release-publish.yml`, which pushes the packages to NuGet.org with [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing). The workflow exchanges a GitHub OIDC token for a NuGet API key that is valid for one hour, so the repository stores no NuGet API key.
 
 The draft release groups the merged pull requests by label. `.github/workflows/pr-labeler.yml` updates the managed category when a pull request title changes and preserves area labels. The category comes from the Conventional Commits type in the title, for example `feat:` for features, `fix:` for bug fixes and `chore:` or `ci:` for maintenance. A title with `!`, such as `feat!:`, marks a breaking change, which the release notes list first.
+
+If an upload stops partway through, rerun the draft job with the same build artifacts. It reuses files with a matching SHA-256 digest and updates the tag and release notes after verifying both packages. A different digest for an existing package name stops the job and preserves the existing file.
 
 To retry a NuGet publication, run the workflow manually with the tag of a published GitHub release.
 

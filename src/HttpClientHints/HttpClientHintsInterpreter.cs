@@ -86,6 +86,9 @@ public static class HttpClientHintsInterpreter
     /// returns an empty array without allocating.
     /// </remarks>
     public static IReadOnlyList<string>? DecodeStructuredStringList(string? headerValue)
+        => DecodeStructuredStringArray(headerValue);
+
+    internal static string[]? DecodeStructuredStringArray(string? headerValue)
     {
         if (headerValue is null)
         {
@@ -129,6 +132,9 @@ public static class HttpClientHintsInterpreter
     /// empty header value returns an empty array without allocating.
     /// </remarks>
     public static IReadOnlyList<HttpClientHintsBrand>? DecodeBrandList(string? headerValue)
+        => DecodeBrandArray(headerValue);
+
+    internal static HttpClientHintsBrand[]? DecodeBrandArray(string? headerValue)
     {
         if (headerValue is null)
         {

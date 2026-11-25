@@ -252,6 +252,19 @@ public class HttpClientHintsRequestMiddlewareTests
     }
 
     [Theory]
+    [InlineData("Other,\tsec-ch-ua ", 2)]
+    [InlineData("\"sec-ch-ua\"", 2)]
+    [InlineData("\"Other,*,Field\"", 3)]
+    public void MergeVary_ChecksEveryFieldLine(string secondLine, int expectedCount)
+    {
+        IHeaderDictionary headers = new HeaderDictionary { ["Vary"] = new[] { "Accept-Encoding", secondLine } };
+        HttpClientHintsMiddlewareConfig config = new() { VaryHeader = "Sec-CH-UA" };
+        config.MergeVary(headers);
+        Assert.Equal(expectedCount, headers.Vary.Count);
+        Assert.Equal(secondLine, headers.Vary[1]);
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task ResponseCaching_UsesTheHintsWhenAnEndpointReplacesVary(bool cacheFirst)

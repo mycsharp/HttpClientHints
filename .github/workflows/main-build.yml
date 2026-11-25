@@ -6,8 +6,7 @@ on:
       - main
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
   build-and-test:
@@ -20,6 +19,9 @@ jobs:
     name: Create Draft Release
     needs: build-and-test
     runs-on: ubuntu-latest
+    concurrency:
+      group: main-release-draft
+      queue: max
     permissions:
       contents: write
 
@@ -33,75 +35,8 @@ jobs:
           name: nuget-packages
           path: ./artifacts
 
-      - name: Check if tag exists
-        id: check-tag
+      - name: Update the managed release draft
         env:
-          TAG: v${{ needs.build-and-test.outputs.version }}
-        run: |
-          remote_tag=$(git ls-remote --refs origin "refs/tags/$TAG")
-          if [ -n "$remote_tag" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "⚠️ Tag $TAG already exists"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "✅ Tag $TAG does not exist yet"
-          fi
-
-      - name: Delete existing draft releases
-        if: steps.check-tag.outputs.exists == 'false'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Checking for existing draft releases..."
-          gh release list --json isDraft,tagName --jq '.[] | select(.isDraft) | .tagName' | while read -r tag_name; do
-            echo "Deleting existing draft release: $tag_name"
-            gh release delete "$tag_name" --yes
-          done
-
-      - name: Create Draft Release
-        if: steps.check-tag.outputs.exists == 'false'
-        uses: release-drafter/release-drafter@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          config-name: release-drafter.yml
-          version: v${{ needs.build-and-test.outputs.version }}
-          tag: v${{ needs.build-and-test.outputs.version }}
-          name: Version ${{ needs.build-and-test.outputs.version }}
-          publish: false
-          prerelease: false
-
-      - name: Upload packages to draft release
-        if: steps.check-tag.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="v${{ needs.build-and-test.outputs.version }}"
-          # Wait a moment for the release to be created
-          sleep 2
-
-          # Upload new artifacts to the draft release
-          echo "📦 Uploading new NuGet packages..."
-          for file in ./artifacts/*.nupkg; do
-            gh release upload "$TAG" "$file" --clobber
-          done
-          echo "✅ Uploaded NuGet packages to draft release"
-
-      - name: Summary
-        if: steps.check-tag.outputs.exists == 'false'
-        run: |
-          echo "✅ Draft release created/updated" >> $GITHUB_STEP_SUMMARY
-          echo "Version: v${{ needs.build-and-test.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next steps:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Go to [Releases](../../releases)" >> $GITHUB_STEP_SUMMARY
-          echo "2. Review the draft release" >> $GITHUB_STEP_SUMMARY
-          echo "3. Edit release notes if needed" >> $GITHUB_STEP_SUMMARY
-          echo "4. Publish release to trigger production deployment" >> $GITHUB_STEP_SUMMARY
-
-      - name: Release already exists
-        if: steps.check-tag.outputs.exists == 'true'
-        run: |
-          echo "ℹ️ Release v${{ needs.build-and-test.outputs.version }} already exists" >> $GITHUB_STEP_SUMMARY
-          echo "No action taken" >> $GITHUB_STEP_SUMMARY
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_VERSION: ${{ needs.build-and-test.outputs.version }}
+        run: python3 eng/update_release_draft.py

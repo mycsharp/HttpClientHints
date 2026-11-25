@@ -29,8 +29,10 @@ public record class HttpClientHints(string? UserAgent, string? Platform, string?
     string? Architecture, string? Model, string? FullVersionList, string? UA, bool? Mobile, IDictionary<string, StringValues> Headers)
 {
     private static readonly Func<string?, string?> s_decodeString = HttpClientHintsInterpreter.DecodeStructuredString;
-    private static readonly Func<string?, IReadOnlyList<string>?> s_decodeStringList = HttpClientHintsInterpreter.DecodeStructuredStringList;
-    private static readonly Func<string?, IReadOnlyList<HttpClientHintsBrand>?> s_decodeBrandList = HttpClientHintsInterpreter.DecodeBrandList;
+    private static readonly Func<string?, IReadOnlyList<string>?> s_decodeStringList =
+        static raw => AsReadOnly(HttpClientHintsInterpreter.DecodeStructuredStringArray(raw));
+    private static readonly Func<string?, IReadOnlyList<HttpClientHintsBrand>?> s_decodeBrandList =
+        static raw => AsReadOnly(HttpClientHintsInterpreter.DecodeBrandArray(raw));
 
     private DecodedValuesField _decoded;
 
@@ -107,6 +109,8 @@ public record class HttpClientHints(string? UserAgent, string? Platform, string?
         => DecodedValues.Get(ref Decoded.Model, Model, s_decodeString);
 
     private DecodedValues Decoded => LazyInitializer.EnsureInitialized(ref _decoded.Values);
+
+    private static IReadOnlyList<T>? AsReadOnly<T>(T[]? items) => items is null ? null : Array.AsReadOnly(items);
 
     /// <summary>
     /// Holds the decoded values. Its equality is always <see langword="true"/>, so it does not change the equality of the record.

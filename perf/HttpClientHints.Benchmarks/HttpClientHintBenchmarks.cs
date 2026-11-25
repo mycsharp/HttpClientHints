@@ -62,6 +62,14 @@ public class HttpClientHintBenchmarks
     }
 
     [Benchmark]
+    public int ReadDecodedBrandListsFromCachedSnapshot()
+    {
+        // The snapshot of the request decodes the lists on the first access and returns them on every further access
+        ClientHints hints = _cachedContext.GetClientHints();
+        return (hints.DecodedUA?.Count ?? 0) + (hints.DecodedFullVersionList?.Count ?? 0);
+    }
+
+    [Benchmark]
     public ClientHints GetClientHintsFromHeaders() => _headers.GetClientHints();
 
     [Benchmark]

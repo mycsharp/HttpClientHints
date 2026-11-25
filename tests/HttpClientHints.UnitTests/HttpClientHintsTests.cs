@@ -92,6 +92,65 @@ public class HttpClientHintsTests
     }
 
     [Fact]
+    public void DecodedProperties_DecodeOnceAndReturnTheSameResult()
+    {
+        HttpClientHints hints = new(null, "\"Windows\"", "\"19.0.0\"", "\"x86\"", "\"Pixel\"",
+            FullVersionList: "\"Chromium\";v=\"142.0.7444.60\"", UA: "\"Chromium\";v=\"142\"", Mobile: null,
+            Headers: new Dictionary<string, StringValues>(StringComparer.Ordinal))
+        {
+            Bitness = "\"64\"",
+            FormFactors = "\"Desktop\"",
+        };
+
+        Assert.Same(hints.DecodedUA, hints.DecodedUA);
+        Assert.Same(hints.DecodedFullVersionList, hints.DecodedFullVersionList);
+        Assert.Same(hints.DecodedFormFactors, hints.DecodedFormFactors);
+        Assert.Same(hints.DecodedPlatform, hints.DecodedPlatform);
+        Assert.Same(hints.DecodedPlatformVersion, hints.DecodedPlatformVersion);
+        Assert.Same(hints.DecodedArchitecture, hints.DecodedArchitecture);
+        Assert.Same(hints.DecodedBitness, hints.DecodedBitness);
+        Assert.Same(hints.DecodedModel, hints.DecodedModel);
+    }
+
+    [Fact]
+    public void DecodedProperties_KeepNullResults()
+    {
+        HttpClientHints hints = Create("\"Windows", null, null, null);
+
+        Assert.Null(hints.DecodedPlatform);
+        Assert.Null(hints.DecodedPlatform);
+    }
+
+    [Fact]
+    public void WithExpression_DecodesTheValuesOfTheCopy()
+    {
+        HttpClientHints hints = Create("\"Windows\"", null, null, null);
+        string? decoded = hints.DecodedPlatform;
+
+        HttpClientHints copy = hints with { };
+        HttpClientHints changed = hints with { Platform = "\"Linux\"" };
+
+        Assert.Equal("Linux", changed.DecodedPlatform);
+        Assert.Equal("Windows", copy.DecodedPlatform);
+        Assert.NotSame(decoded, copy.DecodedPlatform);
+        Assert.Same(decoded, hints.DecodedPlatform);
+        Assert.Same(copy.DecodedPlatform, copy.DecodedPlatform);
+    }
+
+    [Fact]
+    public void Equality_DoesNotDependOnDecodedValuesOfEitherRecord()
+    {
+        HttpClientHints hints = Create("\"Windows\"", null, null, null);
+        HttpClientHints other = hints with { };
+
+        _ = other.DecodedPlatform;
+
+        Assert.Equal(hints, other);
+        Assert.Equal(other, hints);
+        Assert.Equal(hints.GetHashCode(), other.GetHashCode());
+    }
+
+    [Fact]
     public void DecodedProperties_ReturnNull_WhenNewValuesAreMissing()
     {
         HttpClientHints hints = Create(null, null, null, null);

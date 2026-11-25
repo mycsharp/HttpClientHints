@@ -162,6 +162,27 @@ public class HttpClientHintsRequestMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_RunningAgainForTheSameResponse_AddsVaryOnce()
+    {
+        HttpClientHintsMiddlewareConfig config = new()
+        {
+            ResponseHeader = "Sec-CH-UA, Sec-CH-UA-Platform-Version",
+            CriticalHeader = "Sec-CH-UA-Platform-Version",
+            VaryHeader = "Sec-CH-UA-Platform-Version",
+        };
+        HttpClientHintsRequestMiddleware middleware = new(static _ => Task.CompletedTask, Options.Create(config));
+        DefaultHttpContext context = new();
+        context.Response.Headers.Vary = "Accept-Encoding";
+
+        // For example UseStatusCodePagesWithReExecute runs the pipeline again for an error page
+        await middleware.InvokeAsync(context);
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(["Accept-Encoding", "Sec-CH-UA-Platform-Version"], context.Response.Headers.Vary.ToArray());
+        Assert.Equal("Sec-CH-UA-Platform-Version", context.Response.Headers["Critical-CH"]);
+    }
+
+    [Fact]
     public async Task InvokeAsync_WithoutCriticalAndVary_SetsOnlyAcceptCH()
     {
         HttpClientHintsMiddlewareConfig config = new() { ResponseHeader = "Sec-CH-UA", CriticalHeader = string.Empty, VaryHeader = string.Empty };

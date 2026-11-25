@@ -1,5 +1,6 @@
 // Copyright © https://myCSharp.de - all rights reserved
 
+using System.Globalization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -102,6 +103,66 @@ public class HttpClientHintsRegistrationTests
         Assert.Equal("Sec-CH-UA, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version, Sec-CH-UA-Mobile, Sec-CH-UA-Model", config.VaryHeader);
         Assert.Equal(config.ResponseHeader, config.VaryHeader);
         Assert.Equal("Sec-CH-UA-Model", config.CriticalHeader);
+    }
+
+    [Fact]
+    public void AddHttpClientHints_TrimsNamesAndIgnoresNullEntries()
+    {
+        HttpClientHintsMiddlewareConfig config = GetConfig(static options =>
+        {
+            options.Platform = true;
+            options.Additional = ["Sec-CH-UA-Platform ", " sec-ch-ua-mobile", null!, "\tSec-CH-Prefers-Color-Scheme\t"];
+            options.Critical = ["Sec-CH-UA-Platform-Version "];
+        });
+
+        Assert.Equal("Sec-CH-UA, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version, Sec-CH-UA-Mobile, Sec-CH-Prefers-Color-Scheme", config.ResponseHeader);
+        Assert.Equal("Sec-CH-UA-Platform-Version", config.CriticalHeader);
+    }
+
+    [Theory]
+    [InlineData("Sec CH")]
+    [InlineData("Sec-CH-UA-Mobile, Sec-CH-UA-Model")]
+    [InlineData("Sec-CH-UA;a=1")]
+    [InlineData("1Sec-CH")]
+    [InlineData("\"Sec-CH-UA\"")]
+    [InlineData("Sec-CH-Ü")]
+    public void AddHttpClientHints_InvalidAdditionalName_Throws(string name)
+    {
+        ServiceCollection services = new();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => services.AddHttpClientHints(options => options.Additional = [name]));
+
+        Assert.Equal("config", exception.ParamName);
+        Assert.Contains($"'{name}' in HttpClientHintsOptions.Additional", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddHttpClientHints_InvalidCriticalName_Throws()
+    {
+        ServiceCollection services = new();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => services.AddHttpClientHints(static options => options.Critical = ["Sec CH"]));
+
+        Assert.Contains("'Sec CH' in HttpClientHintsOptions.Critical", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddHttpClientHints_ObsoleteLifetime_SendsWholeSecondsIndependentOfCulture()
+    {
+        CultureInfo culture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+#pragma warning disable CS0618 // Lifetime is obsolete
+            HttpClientHintsMiddlewareConfig config = GetConfig(static options => options.Lifetime = TimeSpan.FromMilliseconds(1_500));
+#pragma warning restore CS0618
+
+            Assert.Equal("1", config.LifeTime);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]

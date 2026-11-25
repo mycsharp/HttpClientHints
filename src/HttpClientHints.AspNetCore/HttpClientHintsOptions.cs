@@ -54,13 +54,17 @@ public class HttpClientHintsOptions
     /// <summary>
     /// Gets or sets further hints to request, for example <c>Sec-CH-Prefers-Color-Scheme</c>.
     /// </summary>
-    /// <value>The header names, or <see langword="null"/>. Empty entries and duplicates are ignored.</value>
+    /// <value>
+    /// The header names, or <see langword="null"/>. Surrounding white space is removed; empty entries and duplicates,
+    /// ignoring case, are ignored. An entry that is not a valid header name makes
+    /// <see cref="HttpClientHintsRegistration.AddHttpClientHints"/> throw an <see cref="ArgumentException"/>.
+    /// </value>
     public string[]? Additional { get; set; }
 
     /// <summary>
     /// Gets or sets the hints that the response depends on already for the first request.
     /// </summary>
-    /// <value>The header names, or <see langword="null"/>. Empty entries and duplicates are ignored.</value>
+    /// <value>The header names, or <see langword="null"/>, with the same rules as <see cref="Additional"/>.</value>
     /// <remarks>
     /// The hints are sent in the <c>Critical-CH</c> response header and added to <c>Accept-CH</c> and <c>Vary</c>.
     /// A browser that supports <c>Critical-CH</c> and did not send one of these hints repeats the request once with the hint.
@@ -73,14 +77,14 @@ public class HttpClientHintsOptions
     /// <value><see langword="false"/> by default.</value>
     /// <remarks>
     /// Enable it if responses that depend on the hints can be cached. The middleware appends the hints to a
-    /// <c>Vary</c> header set before it. Hints in <see cref="Critical"/> are always added to <c>Vary</c>.
+    /// <c>Vary</c> header set before it, once per response. Hints in <see cref="Critical"/> are always added to <c>Vary</c>.
     /// </remarks>
     public bool Vary { get; set; }
 
     /// <summary>
     /// Gets or sets the value of the <c>Accept-CH-Lifetime</c> response header.
     /// </summary>
-    /// <value>A <see cref="TimeSpan"/>, sent in seconds, or <see langword="null"/> to omit the header.</value>
+    /// <value>A <see cref="TimeSpan"/>, sent in whole seconds, or <see langword="null"/> to omit the header.</value>
     [Obsolete("Accept-CH-Lifetime was removed from the Client Hints specification, and browsers ignore it. Browsers keep the hints requested with Accept-CH without this header.")]
     public TimeSpan? Lifetime { get; set; }
 }

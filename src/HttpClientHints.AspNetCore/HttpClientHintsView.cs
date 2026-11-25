@@ -12,6 +12,9 @@ namespace MyCSharp.HttpClientHints.AspNetCore;
 /// Creating the view and reading header values do not allocate. The <c>Decoded*</c> properties decode the value on
 /// every access: they allocate the decoded string of a quoted value, and a list for list values.
 /// Use <see cref="BuildSnapshot"/> to materialize a heap-allocated <see cref="HttpClientHints"/> record if needed.
+/// A header sent in several field lines is read as RFC 9651 requires: the lines of the list headers <c>Sec-CH-UA</c>,
+/// <c>Sec-CH-UA-Full-Version-List</c> and <c>Sec-CH-UA-Form-Factors</c> are combined with commas, which allocates the
+/// combined value; for the other headers the first line is used.
 /// </remarks>
 /// <param name="headers">The request headers.</param>
 public readonly struct HttpClientHintsView(IHeaderDictionary headers)
@@ -25,7 +28,7 @@ public readonly struct HttpClientHintsView(IHeaderDictionary headers)
 
     /// <summary>Sec-CH-UA as sent. <see cref="DecodedUA"/> returns the brands.</summary>
     public string? UA
-        => GetFirstValue("Sec-CH-UA");
+        => GetListValue("Sec-CH-UA");
 
     /// <summary>Gets <see cref="UA"/> decoded into its brands.</summary>
     /// <value>The brands, or <see langword="null"/> as described in <see cref="HttpClientHintsInterpreter.DecodeBrandList"/>.</value>
@@ -87,7 +90,7 @@ public readonly struct HttpClientHintsView(IHeaderDictionary headers)
 
     /// <summary>Sec-CH-UA-Form-Factors as sent. <see cref="DecodedFormFactors"/> returns the form factors.</summary>
     public string? FormFactors
-        => GetFirstValue("Sec-CH-UA-Form-Factors");
+        => GetListValue("Sec-CH-UA-Form-Factors");
 
     /// <summary>Gets <see cref="FormFactors"/> decoded, for example <c>Desktop</c> instead of <c>"Desktop"</c>.</summary>
     /// <value>The form factors, or <see langword="null"/> as described in <see cref="HttpClientHintsInterpreter.DecodeStructuredStringList"/>.</value>
@@ -96,7 +99,7 @@ public readonly struct HttpClientHintsView(IHeaderDictionary headers)
 
     /// <summary>Sec-CH-UA-Full-Version-List as sent. <see cref="DecodedFullVersionList"/> returns the brands.</summary>
     public string? FullVersionList
-        => GetFirstValue("Sec-CH-UA-Full-Version-List");
+        => GetListValue("Sec-CH-UA-Full-Version-List");
 
     /// <summary>Gets <see cref="FullVersionList"/> decoded into its brands with their full versions.</summary>
     /// <value>The brands, or <see langword="null"/> as described in <see cref="HttpClientHintsInterpreter.DecodeBrandList"/>.</value>
@@ -120,4 +123,8 @@ public readonly struct HttpClientHintsView(IHeaderDictionary headers)
 
     private string? GetFirstValue(string key)
         => headers.TryGetValue(key, out StringValues values) && values.Count > 0 ? values[0] : null;
+
+    // StringValues.ToString returns a single line without allocating and joins several lines with commas
+    private string? GetListValue(string key)
+        => headers.TryGetValue(key, out StringValues values) && values.Count > 0 ? values.ToString() : null;
 }

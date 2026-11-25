@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
@@ -29,9 +30,11 @@ internal sealed class HttpClientHintsRequestMiddleware(RequestDelegate next, IOp
                 headers["Critical-CH"] = _options.CriticalHeader;
             }
 
-            if (_options.HasVaryHeader)
+            // A pipeline that runs again for the same response, for example after UseStatusCodePagesWithReExecute,
+            // must not add the hints twice
+            if (_options.HasVaryHeader && !Contains(headers.Vary, _options.VaryHeader!))
             {
-                headers.Append("Vary", _options.VaryHeader);
+                headers.Vary = StringValues.Concat(headers.Vary, _options.VaryHeader);
             }
 
             if (_options.HasLifetime)
@@ -41,5 +44,18 @@ internal sealed class HttpClientHintsRequestMiddleware(RequestDelegate next, IOp
         }
 
         await next(context).ConfigureAwait(false);
+    }
+
+    private static bool Contains(StringValues values, string value)
+    {
+        foreach (string? existing in values)
+        {
+            if (string.Equals(existing, value, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

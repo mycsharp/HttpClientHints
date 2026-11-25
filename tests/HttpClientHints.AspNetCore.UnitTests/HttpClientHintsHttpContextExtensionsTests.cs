@@ -200,11 +200,10 @@ public class HttpClientHintsHttpContextExtensionsTests
     }
 
     [Fact]
-    public void GetClientHintsView_UsesOnlyTheFirstValue()
+    public void GetClientHintsView_UsesOnlyTheFirstValueOfHeadersThatAreNoLists()
     {
         HeaderDictionary headers = new()
         {
-            ["Sec-CH-UA"] = new StringValues(["first", "second"]),
             ["Sec-CH-UA-Mobile"] = new StringValues(["?0", "?1"]),
             ["Sec-CH-UA-Platform"] = new StringValues([null, "fallback"]),
             ["Sec-CH-UA-Model"] = new StringValues(string.Empty)
@@ -212,12 +211,41 @@ public class HttpClientHintsHttpContextExtensionsTests
 
         HttpClientHintsView view = headers.GetClientHintsView();
 
-        Assert.Equal("first", view.UA);
         Assert.False(view.Mobile);
         Assert.Null(view.Platform);
         Assert.Null(view.DecodedPlatform);
         Assert.Equal(string.Empty, view.Model);
         Assert.Equal(string.Empty, view.DecodedModel);
+    }
+
+    [Fact]
+    public void GetClientHints_CombinesTheLinesOfListHeaders()
+    {
+        HeaderDictionary headers = new()
+        {
+            ["Sec-CH-UA"] = new StringValues(["\"Chromium\";v=\"142\"", "\"Google Chrome\";v=\"142\""]),
+            ["Sec-CH-UA-Full-Version-List"] = new StringValues(["\"Chromium\";v=\"142.0.7444.60\"", null, "\"Not_A Brand\";v=\"99.0.0.0\""]),
+            ["Sec-CH-UA-Form-Factors"] = new StringValues(["\"Desktop\"", "\"XR\""]),
+        };
+
+        HttpClientHintsView view = headers.GetClientHintsView();
+        HttpClientHints snapshot = headers.GetClientHints();
+
+        Assert.Equal("\"Chromium\";v=\"142\",\"Google Chrome\";v=\"142\"", view.UA);
+        Assert.Equal([new HttpClientHintsBrand("Chromium", "142"), new HttpClientHintsBrand("Google Chrome", "142")], view.DecodedUA);
+        Assert.Equal(
+            [new HttpClientHintsBrand("Chromium", "142.0.7444.60"), new HttpClientHintsBrand("Not_A Brand", "99.0.0.0")],
+            snapshot.DecodedFullVersionList);
+        Assert.Equal(["Desktop", "XR"], snapshot.DecodedFormFactors);
+    }
+
+    [Fact]
+    public void GetClientHintsView_ReturnsASingleLineOfAListHeaderWithoutCopying()
+    {
+        string value = "\"Chromium\";v=\"142\"";
+        HeaderDictionary headers = new() { ["Sec-CH-UA"] = value };
+
+        Assert.Same(value, headers.GetClientHintsView().UA);
     }
 
     [Fact]

@@ -256,6 +256,8 @@ CI also checks the formatting with `dotnet format --verify-no-changes`. Run the 
 
 `dotnet pack` validates the packages against the version in `PackageValidationBaselineVersion` in `Directory.Build.props` and fails on API breaking changes. Intended breaking changes are listed in the `CompatibilitySuppressions.xml` file of the package; generate it with `dotnet pack -p:ApiCompatGenerateSuppressionFile=true`. CI packs in every build, also for pull requests.
 
+Changes reach `main` only through pull requests. A pull request can be merged when the checks `Build and Test` and `Native AOT` for .NET 8, 9, 10, and 11 have passed.
+
 ## Release
 
 Every push to `main` builds and tests the solution and creates a draft GitHub release with the NuGet packages. Publishing that release runs `.github/workflows/release-publish.yml`, which pushes the packages to NuGet.org with [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing). The workflow exchanges a GitHub OIDC token for a NuGet API key that is valid for one hour, so the repository stores no NuGet API key.

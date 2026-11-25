@@ -16,13 +16,12 @@ namespace MyCSharp.HttpClientHints;
 /// </remarks>
 internal ref struct StructuredFieldReader
 {
+    private static readonly SearchValues<char> s_keyStartCharacters = SearchValues.Create("abcdefghijklmnopqrstuvwxyz*");
     private static readonly SearchValues<char> s_keyCharacters = SearchValues.Create("abcdefghijklmnopqrstuvwxyz0123456789_-.*");
     private static readonly SearchValues<char> s_tokenCharacters = SearchValues.Create(
         "!#$%&'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz:/");
     private static readonly SearchValues<char> s_base64Characters = SearchValues.Create(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=");
-
-    private const string KeyStartCharacters = "abcdefghijklmnopqrstuvwxyz*";
 
     private readonly ReadOnlySpan<char> _value;
     private int _position;
@@ -167,7 +166,7 @@ internal ref struct StructuredFieldReader
     private bool TryReadKey(out ReadOnlySpan<char> key)
     {
         key = default;
-        if (IsAtEnd || !KeyStartCharacters.Contains(Current, StringComparison.Ordinal))
+        if (IsAtEnd || !s_keyStartCharacters.Contains(Current))
         {
             return false;
         }
@@ -277,24 +276,29 @@ internal ref struct StructuredFieldReader
         return true;
     }
 
+    // Keys, tokens and the white space between members are a few characters long in Client Hints:
+    // a loop is faster than setting up a vectorized search for them.
     private void SkipAll(SearchValues<char> characters)
     {
-        ReadOnlySpan<char> rest = _value[_position..];
-        int length = rest.IndexOfAnyExcept(characters);
-        _position += length < 0 ? rest.Length : length;
+        while (!IsAtEnd && characters.Contains(Current))
+        {
+            _position++;
+        }
     }
 
     private void SkipSpaces()
     {
-        ReadOnlySpan<char> rest = _value[_position..];
-        int length = rest.IndexOfAnyExcept(' ');
-        _position += length < 0 ? rest.Length : length;
+        while (!IsAtEnd && Current == ' ')
+        {
+            _position++;
+        }
     }
 
     private void SkipWhitespace()
     {
-        ReadOnlySpan<char> rest = _value[_position..];
-        int length = rest.IndexOfAnyExcept(' ', '\t');
-        _position += length < 0 ? rest.Length : length;
+        while (!IsAtEnd && Current is ' ' or '\t')
+        {
+            _position++;
+        }
     }
 }

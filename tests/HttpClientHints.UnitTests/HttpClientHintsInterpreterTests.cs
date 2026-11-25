@@ -214,6 +214,26 @@ public class HttpClientHintsInterpreterTests
     }
 
     [Fact]
+    public void DecodeLists_ReturnOnlyTheMembers_WhenStringsContainCommas()
+    {
+        IReadOnlyList<HttpClientHintsBrand>? brands = HttpClientHintsInterpreter.DecodeBrandList("\"A, B\";v=\"1,2\", \"C\"");
+        IReadOnlyList<string>? strings = HttpClientHintsInterpreter.DecodeStructuredStringList("\"A, B\", \"C,D\"");
+
+        Assert.Equal([new HttpClientHintsBrand("A, B", "1,2"), new HttpClientHintsBrand("C", null)], brands);
+        Assert.Equal(["A, B", "C,D"], strings);
+    }
+
+    [Theory]
+    [InlineData("\"a\\\\é\"")]
+    [InlineData("\"a\\\"\tb\"")]
+    [InlineData("\"a\\")]
+    [InlineData("\"é\\\"\"")]
+    public void DecodeStructuredString_ReturnsNull_ForInvalidCharactersAfterAnEscape(string input)
+    {
+        Assert.Null(HttpClientHintsInterpreter.DecodeStructuredString(input));
+    }
+
+    [Fact]
     public void DecodeLists_AllocateLinearly_ForManyStringsWithEscapes()
     {
         // 2,730 members of 6 characters: a header of about 16 KB, half of Kestrel's default limit for all headers

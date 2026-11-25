@@ -81,7 +81,10 @@ public static class HttpClientHintsInterpreter
     /// if <paramref name="headerValue"/> is <see langword="null"/> or malformed, a member is not a string, or a member has
     /// parameters.
     /// </returns>
-    /// <remarks>Follows RFC 9651, sections 4.2.1 and 4.2.5. Every call allocates a new list.</remarks>
+    /// <remarks>
+    /// Follows RFC 9651, sections 4.2.1 and 4.2.5. Every call returns a new array and the strings; an empty header value
+    /// returns an empty array without allocating.
+    /// </remarks>
     public static IReadOnlyList<string>? DecodeStructuredStringList(string? headerValue)
     {
         if (headerValue is null)
@@ -90,8 +93,14 @@ public static class HttpClientHintsInterpreter
         }
 
         StructuredFieldReader reader = new(headerValue);
-        List<string> values = [];
-        bool isEnd = reader.IsAtEnd;
+        if (reader.IsAtEnd)
+        {
+            return [];
+        }
+
+        string[] values = new string[GetMaximumListLength(headerValue)];
+        int count = 0;
+        bool isEnd = false;
         while (!isEnd)
         {
             if (!reader.TryReadString(out string? value) || reader.HasParameters || !reader.TryReadListSeparator(out isEnd))
@@ -99,10 +108,10 @@ public static class HttpClientHintsInterpreter
                 return null;
             }
 
-            values.Add(value);
+            values[count++] = value;
         }
 
-        return values;
+        return count == values.Length ? values : values[..count];
     }
 
     /// <summary>
@@ -116,7 +125,8 @@ public static class HttpClientHintsInterpreter
     /// </returns>
     /// <remarks>
     /// Follows RFC 9651, sections 4.2.1 and 4.2.3. The list keeps GREASE brands; <see cref="HttpClientHintsBrand.IsGrease"/>
-    /// identifies them. Parameters other than <c>v</c> are ignored. Every call allocates a new list.
+    /// identifies them. Parameters other than <c>v</c> are ignored. Every call returns a new array and the strings; an
+    /// empty header value returns an empty array without allocating.
     /// </remarks>
     public static IReadOnlyList<HttpClientHintsBrand>? DecodeBrandList(string? headerValue)
     {
@@ -126,8 +136,14 @@ public static class HttpClientHintsInterpreter
         }
 
         StructuredFieldReader reader = new(headerValue);
-        List<HttpClientHintsBrand> brands = [];
-        bool isEnd = reader.IsAtEnd;
+        if (reader.IsAtEnd)
+        {
+            return [];
+        }
+
+        HttpClientHintsBrand[] brands = new HttpClientHintsBrand[GetMaximumListLength(headerValue)];
+        int count = 0;
+        bool isEnd = false;
         while (!isEnd)
         {
             if (!reader.TryReadString(out string? brand)
@@ -137,9 +153,14 @@ public static class HttpClientHintsInterpreter
                 return null;
             }
 
-            brands.Add(new HttpClientHintsBrand(brand, version));
+            brands[count++] = new HttpClientHintsBrand(brand, version);
         }
 
-        return brands;
+        return count == brands.Length ? brands : brands[..count];
     }
+
+    // Commas separate the members of a list, so a list has at most one member more than commas.
+    // Commas inside strings or parameters only make the result larger than needed.
+    private static int GetMaximumListLength(string headerValue)
+        => headerValue.AsSpan().Count(',') + 1;
 }

@@ -16,6 +16,9 @@ public class HttpClientHintsBrandTests
     [InlineData("Not=A?Brand")]
     [InlineData(" Not A;Brand")]
     [InlineData(" Not;A Brand")]
+    [InlineData(";Not A Brand")]
+    [InlineData("\"Not\\A;Brand")]
+    [InlineData("\\Not\"A;Brand")]
     public void IsGrease_IsTrue_ForGreaseBrands(string brand)
     {
         Assert.True(new HttpClientHintsBrand(brand, "99").IsGrease);
@@ -30,8 +33,11 @@ public class HttpClientHintsBrandTests
     [InlineData("Nor_A Brand")]
     [InlineData("Not_B Brand")]
     [InlineData("Not_A Brant")]
+    [InlineData("Not_A Bran")]
     [InlineData("NotxA Brand")]
     [InlineData("Not_AxBrand")]
+    [InlineData("Not_A Brand!")]
+    [InlineData("Not A Brand 2")]
     public void IsGrease_IsFalse_ForOtherBrands(string brand)
     {
         Assert.False(new HttpClientHintsBrand(brand, "142").IsGrease);

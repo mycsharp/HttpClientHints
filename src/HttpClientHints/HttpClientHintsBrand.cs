@@ -12,31 +12,43 @@ namespace MyCSharp.HttpClientHints;
 /// </param>
 public readonly record struct HttpClientHintsBrand(string Brand, string? Version)
 {
-    private const string GreaseCharacters = " ()-./:;=?_";
+    private const string GreaseCharacters = " ()-./:;=?_\"\\";
+    private const string GreaseLetters = "NotABrand";
 
     /// <summary>
     /// Gets a value indicating whether <see cref="Brand"/> is a GREASE brand of a Chromium-based browser,
-    /// for example <c>Not_A Brand</c> or <c>Not)A;Brand</c>.
+    /// for example <c>Not_A Brand</c>, <c>Not)A;Brand</c> or <c> Not A;Brand</c>.
     /// </summary>
     /// <value>
-    /// <see langword="true"/> if the brand, without leading spaces, consists of <c>Not</c>, one of the characters
-    /// <c> ()-./:;=?_</c>, <c>A</c>, one of these characters and <c>Brand</c>; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> if the brand consists of the letters <c>NotABrand</c> in this order and any of the
+    /// characters <c> ()-./:;=?_"\</c>; otherwise, <see langword="false"/>.
     /// </value>
     /// <remarks>
     /// Browsers add a brand with a changing name to the brand lists so that servers do not depend on a fixed list of
-    /// brands (GREASE). This brand does not identify the browser.
+    /// brands (GREASE). This brand does not identify the browser. Chromium-based browsers insert two or three of these
+    /// characters around <c>Not</c> and <c>A</c>, depending on their version.
     /// </remarks>
     public bool IsGrease
     {
         get
         {
-            ReadOnlySpan<char> brand = Brand.AsSpan().TrimStart(' ');
-            return brand.Length == 11
-                && brand.StartsWith("Not", StringComparison.Ordinal)
-                && brand[4] == 'A'
-                && brand.EndsWith("Brand", StringComparison.Ordinal)
-                && GreaseCharacters.Contains(brand[3], StringComparison.Ordinal)
-                && GreaseCharacters.Contains(brand[5], StringComparison.Ordinal);
+            int matched = 0;
+            foreach (char character in Brand.AsSpan())
+            {
+                if (GreaseCharacters.Contains(character, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (matched == GreaseLetters.Length || character != GreaseLetters[matched])
+                {
+                    return false;
+                }
+
+                matched++;
+            }
+
+            return matched == GreaseLetters.Length;
         }
     }
 }

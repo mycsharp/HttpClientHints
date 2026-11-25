@@ -67,7 +67,9 @@ internal ref struct StructuredFieldReader
                     return false;
                 }
 
-                decoded ??= new StringBuilder(_value.Length).Append(_value[start..(_position - 1)]);
+                // The default capacity grows with the string: sizing it to the header would allocate
+                // the header length for every escaped string of a list.
+                decoded ??= new StringBuilder().Append(_value[start..(_position - 1)]);
                 character = _value[_position++];
             }
             else if ((uint)(character - ' ') > '~' - ' ')

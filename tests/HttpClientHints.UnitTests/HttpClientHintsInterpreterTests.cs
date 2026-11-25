@@ -212,4 +212,21 @@ public class HttpClientHintsInterpreterTests
         Assert.Equal(["Google Chrome", "Chromium"], brands.Where(static brand => !brand.IsGrease).Select(static brand => brand.Brand), StringComparer.Ordinal);
         Assert.True(brands[1].IsGrease);
     }
+
+    [Fact]
+    public void DecodeLists_AllocateLinearly_ForManyStringsWithEscapes()
+    {
+        // 2,730 members of 6 characters: a header of about 16 KB, half of Kestrel's default limit for all headers
+        string header = string.Join(", ", Enumerable.Repeat("\"\\\"\"", 2_730));
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        IReadOnlyList<HttpClientHintsBrand>? brands = HttpClientHintsInterpreter.DecodeBrandList(header);
+        IReadOnlyList<string>? strings = HttpClientHintsInterpreter.DecodeStructuredStringList(header);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(2_730, brands?.Count);
+        Assert.Equal(2_730, strings?.Count);
+        Assert.All(strings!, static value => Assert.Equal("\"", value));
+        Assert.InRange(allocated, 0, 2_000_000);
+    }
 }

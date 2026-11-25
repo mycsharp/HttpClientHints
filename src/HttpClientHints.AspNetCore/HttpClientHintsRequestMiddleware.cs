@@ -2,7 +2,6 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
@@ -14,9 +13,18 @@ namespace MyCSharp.HttpClientHints.AspNetCore;
 /// The middleware stays async: a synchronous exception of the next middleware results in a faulted task, and
 /// <see cref="AsyncLocal{T}"/> changes of the next middleware do not flow back to the caller.
 /// </remarks>
-internal sealed class HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<HttpClientHintsMiddlewareConfig> options)
+internal sealed class HttpClientHintsRequestMiddleware
 {
-    private readonly HttpClientHintsMiddlewareConfig _options = options.Value;
+    private readonly RequestDelegate _next;
+    private readonly HttpClientHintsMiddlewareConfig _options;
+    private readonly Func<object, Task> _restoreVary;
+
+    public HttpClientHintsRequestMiddleware(RequestDelegate next, IOptions<HttpClientHintsMiddlewareConfig> options)
+    {
+        _next = next;
+        _options = options.Value;
+        _restoreVary = RestoreVary;
+    }
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -30,11 +38,12 @@ internal sealed class HttpClientHintsRequestMiddleware(RequestDelegate next, IOp
                 headers["Critical-CH"] = _options.CriticalHeader;
             }
 
-            // A pipeline that runs again for the same response, for example after UseStatusCodePagesWithReExecute,
-            // must not add the hints twice
-            if (_options.HasVaryHeader && !Contains(headers.Vary, _options.VaryHeader!))
+            if (_options.HasVaryHeader)
             {
-                headers.Vary = StringValues.Concat(headers.Vary, _options.VaryHeader);
+                // Make Vary available to downstream middleware, then restore hints removed by MVC cache filters.
+                context.Features.Set(_options);
+                _options.MergeVary(headers);
+                context.Response.OnStarting(_restoreVary, context.Response);
             }
 
             if (_options.HasLifetime)
@@ -43,19 +52,12 @@ internal sealed class HttpClientHintsRequestMiddleware(RequestDelegate next, IOp
             }
         }
 
-        await next(context).ConfigureAwait(false);
+        await _next(context).ConfigureAwait(false);
     }
 
-    private static bool Contains(StringValues values, string value)
+    private Task RestoreVary(object state)
     {
-        foreach (string? existing in values)
-        {
-            if (string.Equals(existing, value, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        _options.MergeVary(((HttpResponse)state).Headers);
+        return Task.CompletedTask;
     }
 }

@@ -43,7 +43,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0 # Required for GitVersion
+          fetch-depth: 0 # NBGV calculates the version from Git history
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -109,6 +109,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5

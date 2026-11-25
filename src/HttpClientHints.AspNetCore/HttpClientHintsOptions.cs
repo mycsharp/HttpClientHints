@@ -76,8 +76,9 @@ public class HttpClientHintsOptions
     /// </summary>
     /// <value><see langword="false"/> by default.</value>
     /// <remarks>
-    /// Enable it if responses that depend on the hints can be cached. The middleware appends the hints to a
-    /// <c>Vary</c> header set before it, once per response. Hints in <see cref="Critical"/> are always added to <c>Vary</c>.
+    /// Enable it if responses that depend on the hints can be cached. The middleware merges missing field names
+    /// into <c>Vary</c> before the response starts. Hints in <see cref="Critical"/> are always included unless
+    /// <c>Vary: *</c> already covers all fields.
     /// </remarks>
     public bool Vary { get; set; }
 

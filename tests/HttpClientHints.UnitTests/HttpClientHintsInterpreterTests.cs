@@ -158,12 +158,16 @@ public class HttpClientHintsInterpreterTests
     [InlineData("\"Edge\";a=-1")]
     [InlineData("\"Edge\";a=1.5")]
     [InlineData("\"Edge\";a=-1.25")]
+    [InlineData("\"Edge\";a=-123456789012.345")]
+    [InlineData("\"Edge\";a=@-123456789012345")]
     [InlineData("\"Edge\";a=?1")]
     [InlineData("\"Edge\";a=?0")]
     [InlineData("\"Edge\";a=token")]
     [InlineData("\"Edge\";a=*token/1:2")]
     [InlineData("\"Edge\";a=:cHJldGVuZA==:")]
     [InlineData("\"Edge\";a=::")]
+    [InlineData("\"Edge\";a=:aGVsbG8:")]
+    [InlineData("\"Edge\";a=:Zg=:")]
     [InlineData("\"Edge\";a=@1659578233")]
     [InlineData("\"Edge\";a=%\"f%c3%bc\"")]
     [InlineData("\"Edge\";a=%\"\"")]
@@ -193,6 +197,18 @@ public class HttpClientHintsInterpreterTests
     [InlineData("\"Edge\";v=:abc")]
     [InlineData("\"Edge\";v=:a!:")]
     [InlineData("\"Edge\";v=@")]
+    [InlineData("\"Edge\";a=@1.5")]
+    [InlineData("\"Edge\";a=1234567890123456")]
+    [InlineData("\"Edge\";a=1234567890123.1")]
+    [InlineData("\"Edge\";a=0.0001")]
+    [InlineData("\"Edge\";a=:A=AA:")]
+    [InlineData("\"Edge\";a=:A:")]
+    [InlineData("\"Edge\";a=:AAAA=:")]
+    [InlineData("\"Edge\";a=%\"%\"")]
+    [InlineData("\"Edge\";a=%\"%zz\"")]
+    [InlineData("\"Edge\";a=%\"%0A\"")]
+    [InlineData("\"Edge\";a=%\"%ff\"")]
+    [InlineData("\"Edge\";a=%\"%e2%82\"")]
     [InlineData("\"Edge\";v=%")]
     [InlineData("\"Edge\";v=%x")]
     [InlineData("\"Edge\";v=%\"abc")]
@@ -201,6 +217,13 @@ public class HttpClientHintsInterpreterTests
     public void DecodeBrandList_ReturnsNull_ForMissingOrMalformedValues(string? input)
     {
         Assert.Null(HttpClientHintsInterpreter.DecodeBrandList(input));
+    }
+
+    [Fact]
+    public void DecodeBrandList_ValidatesLongUtf8DisplayStrings()
+    {
+        string display = new string('a', 300) + "%f0%9f%98%80";
+        Assert.Equal("1", Assert.Single(HttpClientHintsInterpreter.DecodeBrandList($"\"A\";d=%\"{display}\";v=\"1\"")!).Version);
     }
 
     [Fact]

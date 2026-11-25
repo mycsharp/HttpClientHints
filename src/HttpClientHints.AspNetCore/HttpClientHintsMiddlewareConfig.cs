@@ -1,5 +1,8 @@
 // Copyright © https://myCSharp.de - all rights reserved
 
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
+
 namespace MyCSharp.HttpClientHints.AspNetCore;
 
 /// <summary>
@@ -43,12 +46,14 @@ internal sealed class HttpClientHintsMiddlewareConfig
         set
         {
             field = value;
-            HasVaryHeader = !string.IsNullOrEmpty(value);
+            VaryNames = value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
         }
     }
 
     /// <summary>Gets a value indicating whether <see cref="VaryHeader"/> is set.</summary>
-    public bool HasVaryHeader { get; private set; }
+    public bool HasVaryHeader => VaryNames.Length != 0;
+
+    public string[] VaryNames { get; private set; } = [];
 
     /// <summary>Gets or sets the value of the obsolete <c>Accept-CH-Lifetime</c> header in seconds.</summary>
     public string? LifeTime
@@ -63,4 +68,33 @@ internal sealed class HttpClientHintsMiddlewareConfig
 
     /// <summary>Gets a value indicating whether <see cref="LifeTime"/> is set.</summary>
     public bool HasLifetime { get; private set; }
+
+    public void MergeVary(IHeaderDictionary headers)
+    {
+        StringValues vary = headers.Vary;
+        if (StringValues.IsNullOrEmpty(vary))
+        {
+            headers.Vary = VaryHeader;
+            return;
+        }
+
+        if (StringValues.Equals(vary, VaryHeader))
+        {
+            return;
+        }
+
+        string[] existing = headers.GetCommaSeparatedValues("Vary");
+        if (existing.Contains("*", StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        foreach (string hint in VaryNames)
+        {
+            if (!existing.Contains(hint, StringComparer.OrdinalIgnoreCase))
+            {
+                headers.Append("Vary", hint);
+            }
+        }
+    }
 }

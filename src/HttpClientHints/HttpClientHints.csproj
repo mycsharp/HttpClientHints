@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <None Include="readme.md" Pack="true" PackagePath="" />
+    <PackageReference Include="Nerdbank.GitVersioning" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup Label="Dependencies" Condition="'$(TargetFramework)' != 'net11.0'">

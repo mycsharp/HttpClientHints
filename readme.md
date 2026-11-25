@@ -107,7 +107,7 @@ Browsers send the low-entropy hints with every request, also if `UserAgent` or `
 | `Vary` | Adds all requested hints to the `Vary` response header. Enable it if responses that depend on the hints can be cached. `false` by default. |
 | `Lifetime` | Obsolete. Sets the `Accept-CH-Lifetime` header, which was removed from the Client Hints specification and which browsers ignore. |
 
-`AddHttpClientHints` reads the options once. It removes surrounding white space from the entries of `Additional` and `Critical` and ignores empty entries and duplicates; duplicates are compared ignoring case. An entry that is not a valid header name, for example `Sec CH` or two names separated by a comma, makes `AddHttpClientHints` throw an `ArgumentException`: browsers would ignore the whole `Accept-CH` header. The middleware appends its `Vary` values to a `Vary` header that was set before it, once per response, also if the pipeline runs again for the same response.
+`AddHttpClientHints` reads the options once. It removes surrounding white space from the entries of `Additional` and `Critical` and ignores empty entries and duplicates; duplicates are compared ignoring case. An entry that is not a valid header name, for example `Sec CH` or two names separated by a comma, makes `AddHttpClientHints` throw an `ArgumentException`: browsers would ignore the whole `Accept-CH` header. The middleware merges missing field names into `Vary` before the response starts, including when MVC replaces the header with `[ResponseCache]`. It compares names ignoring case and preserves `Vary: *`.
 
 ```csharp
 builder.Services.AddHttpClientHints(options =>
@@ -121,7 +121,9 @@ builder.Services.AddHttpClientHints(options =>
 });
 ```
 
-Every response then contains these headers:
+For MVC actions using `[ResponseCache]`, the integration also restores the hints before the action or result writes its body. This lets `UseResponseCaching()` include those fields in its server-side cache key.
+
+The options above produce these response headers:
 
 ```http
 Accept-CH: Sec-CH-UA, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version, Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-WoW64, Sec-CH-UA-Model, Sec-CH-UA-Form-Factors, Sec-CH-UA-Mobile, Sec-CH-UA-Full-Version-List, Sec-CH-Prefers-Color-Scheme
@@ -257,7 +259,7 @@ Line and branch coverage of both packages must stay at 100 %. CI collects covera
 
 CI also checks the formatting with `dotnet format --verify-no-changes`. Run the same check locally with `just format-check`.
 
-`dotnet pack` validates the packages against the version in `PackageValidationBaselineVersion` in `Directory.Build.props` and fails on API breaking changes. Intended breaking changes are listed in the `CompatibilitySuppressions.xml` file of the package; generate it with `dotnet pack -p:ApiCompatGenerateSuppressionFile=true`. CI packs in every build, also for pull requests.
+`dotnet pack -c Release` uses Nerdbank.GitVersioning to derive package and assembly versions from `version.json` and Git history. It validates the packages against the version in `PackageValidationBaselineVersion` in `Directory.Build.props` and fails on API breaking changes. Intended breaking changes are listed in the `CompatibilitySuppressions.xml` file of the package; generate it with `dotnet pack -p:ApiCompatGenerateSuppressionFile=true`. CI packs in every build, also for pull requests.
 
 Changes reach `main` only through pull requests. A pull request can be merged when the checks `Build and Test` and `Native AOT` for .NET 8, 9, 10, and 11 have passed.
 
@@ -265,7 +267,7 @@ Changes reach `main` only through pull requests. A pull request can be merged wh
 
 Every push to `main` builds and tests the solution and creates a draft GitHub release with the NuGet packages. Publishing that release runs `.github/workflows/release-publish.yml`, which pushes the packages to NuGet.org with [Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing). The workflow exchanges a GitHub OIDC token for a NuGet API key that is valid for one hour, so the repository stores no NuGet API key.
 
-The draft release groups the merged pull requests by label. `.github/workflows/pr-labeler.yml` labels every pull request with the rules in `.github/release-drafter.yml`: the category comes from the Conventional Commits type in the title, for example `feat:` for features, `fix:` for bug fixes and `chore:` or `ci:` for maintenance. A title with `!`, such as `feat!:`, marks a breaking change, which the release notes list first.
+The draft release groups the merged pull requests by label. `.github/workflows/pr-labeler.yml` updates the managed category when a pull request title changes and preserves area labels. The category comes from the Conventional Commits type in the title, for example `feat:` for features, `fix:` for bug fixes and `chore:` or `ci:` for maintenance. A title with `!`, such as `feat!:`, marks a breaking change, which the release notes list first.
 
 To publish the packages of an existing release again, run the workflow manually with the release tag:
 
@@ -279,7 +281,7 @@ After a release, set `PackageValidationBaselineVersion` to the released version 
 
 ## Benchmark
 
-Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Benchmarks --framework net11.0 -- --filter '*' --iterationCount 15 --iterationTime 200 --launchCount 2 --warmupCount 6`. Both tables below come from one run of this command.
+Run the benchmarks with `dotnet run -c Release --project perf/HttpClientHints.Benchmarks --framework net11.0 -- --filter '*' --iterationCount 15 --iterationTime 200 --launchCount 2 --warmupCount 6`. The tables below were measured before the response-start and MVC cache-filter changes.
 
 ```
 BenchmarkDotNet v0.16.0-preview.2, Windows 10 (10.0.19045.7846/22H2/2022Update)

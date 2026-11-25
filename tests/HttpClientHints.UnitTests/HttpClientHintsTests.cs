@@ -1,5 +1,6 @@
 // Copyright © https://myCSharp.de - all rights reserved
 
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Primitives;
 using Xunit;
 
@@ -135,6 +136,23 @@ public class HttpClientHintsTests
         Assert.NotSame(decoded, copy.DecodedPlatform);
         Assert.Same(decoded, hints.DecodedPlatform);
         Assert.Same(copy.DecodedPlatform, copy.DecodedPlatform);
+    }
+
+    [Fact]
+    public void WithExpression_ReleasesReplacedHeadersBeforeDecodingTheCopy()
+    {
+        (HttpClientHints copy, WeakReference oldHeaders) = CopyWithNewHeaders();
+        GC.Collect();
+        Assert.False(oldHeaders.IsAlive);
+        GC.KeepAlive(copy);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static (HttpClientHints, WeakReference) CopyWithNewHeaders()
+        {
+            HttpClientHints source = Create("\"Windows\"", null, null, null);
+            _ = source.DecodedPlatform;
+            return (source with { Headers = new Dictionary<string, StringValues>(StringComparer.Ordinal) }, new WeakReference(source.Headers));
+        }
     }
 
     [Fact]

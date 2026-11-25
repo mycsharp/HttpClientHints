@@ -3,6 +3,7 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Text.Unicode;
 
 namespace MyCSharp.HttpClientHints;
 
@@ -12,7 +13,7 @@ namespace MyCSharp.HttpClientHints;
 /// </summary>
 /// <remarks>
 /// Leading and trailing spaces and tabs of the field value are ignored. Parameter values of other types
-/// (integers, decimals, tokens, byte sequences, dates and display strings) are checked for their basic form and skipped.
+/// (integers, decimals, tokens, byte sequences, dates and display strings) are validated and skipped.
 /// </remarks>
 internal ref struct StructuredFieldReader
 {
@@ -195,14 +196,14 @@ internal ref struct StructuredFieldReader
                 return TrySkipByteSequence();
             case '@':
                 _position++;
-                return TrySkipNumber();
+                return TrySkipNumber(allowDecimal: false);
             case '%':
                 return TrySkipDisplayString();
         }
 
         if (Current == '-' || char.IsAsciiDigit(Current))
         {
-            return TrySkipNumber();
+            return TrySkipNumber(allowDecimal: true);
         }
 
         if (Current == '*' || char.IsAsciiLetter(Current))
@@ -215,14 +216,15 @@ internal ref struct StructuredFieldReader
         return false;
     }
 
-    private bool TrySkipNumber()
+    private bool TrySkipNumber(bool allowDecimal)
     {
         if (!IsAtEnd && Current == '-')
         {
             _position++;
         }
 
-        if (!TrySkipDigits())
+        int integerDigits = SkipDigits();
+        if (integerDigits is 0 or > 15)
         {
             return false;
         }
@@ -230,19 +232,19 @@ internal ref struct StructuredFieldReader
         if (!IsAtEnd && Current == '.')
         {
             _position++;
-            return TrySkipDigits();
+            return allowDecimal && integerDigits <= 12 && SkipDigits() is >= 1 and <= 3;
         }
 
         return true;
     }
 
-    private bool TrySkipDigits()
+    private int SkipDigits()
     {
         int start = _position;
         ReadOnlySpan<char> rest = _value[_position..];
         int length = rest.IndexOfAnyExceptInRange('0', '9');
         _position += length < 0 ? rest.Length : length;
-        return _position > start;
+        return _position - start;
     }
 
     private bool TrySkipByteSequence()
@@ -254,8 +256,13 @@ internal ref struct StructuredFieldReader
             return false;
         }
 
+        ReadOnlySpan<char> encoded = rest[..end];
+        ReadOnlySpan<char> digits = encoded.TrimEnd('=');
+        int remainder = digits.Length % 4;
+        int padding = encoded.Length - digits.Length;
         _position += end + 2;
-        return true;
+        // Missing padding can be synthesized. '=' inside the data or beyond the last quartet is invalid.
+        return remainder != 1 && !digits.Contains('=') && padding <= (4 - remainder) % 4;
     }
 
     private bool TrySkipDisplayString()
@@ -267,13 +274,50 @@ internal ref struct StructuredFieldReader
         }
 
         int end = rest[1..].IndexOf('"');
-        if (end < 0 || rest.Slice(1, end).IndexOfAnyExceptInRange(' ', '~') >= 0)
+        if (end < 0)
         {
             return false;
         }
 
+        ReadOnlySpan<char> content = rest.Slice(1, end);
         _position += end + 3;
-        return true;
+        if (content.IndexOfAnyExceptInRange(' ', '~') >= 0)
+        {
+            return false;
+        }
+
+        if (!content.Contains('%'))
+        {
+            return true;
+        }
+
+        const string Hex = "0123456789abcdef";
+        Span<byte> utf8 = content.Length <= 256 ? stackalloc byte[content.Length] : new byte[content.Length];
+        int count = 0;
+        for (int i = 0; i < content.Length; i++)
+        {
+            if (content[i] != '%')
+            {
+                utf8[count++] = (byte)content[i];
+                continue;
+            }
+
+            if (content.Length - i < 3)
+            {
+                return false;
+            }
+
+            int high = Hex.IndexOf(content[++i], StringComparison.Ordinal);
+            int low = Hex.IndexOf(content[++i], StringComparison.Ordinal);
+            if (high < 0 || low < 0)
+            {
+                return false;
+            }
+
+            utf8[count++] = (byte)((high << 4) | low);
+        }
+
+        return Utf8.IsValid(utf8[..count]);
     }
 
     // Keys, tokens and the white space between members are a few characters long in Client Hints:

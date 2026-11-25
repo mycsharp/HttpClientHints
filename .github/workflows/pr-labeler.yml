@@ -1,8 +1,6 @@
 name: PR Labeler
 
-# Labels pull requests with the autolabeler rules of .github/release-drafter.yml, so that the draft release
-# sorts them into categories. pull_request_target also labels pull requests from forks; the workflow does not
-# check out or run code of the pull request, it only reads its title, branch and changed files.
+# Read the PR title and changed paths through the API. Fork code is never checked out.
 on:
   pull_request_target:
     types: [opened, reopened, synchronize, edited]
@@ -14,15 +12,46 @@ jobs:
   label:
     name: Label pull request
     runs-on: ubuntu-latest
+    concurrency:
+      group: pr-labeler-${{ github.event.pull_request.number }}
     permissions:
       contents: read
       pull-requests: write
 
     steps:
-      - name: Label pull request
+      - name: Label changed areas
         uses: release-drafter/release-drafter@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           config-name: release-drafter.yml
           disable-releaser: true
+
+      - name: Reconcile release category
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $issue = "repos/$env:GITHUB_REPOSITORY/issues/$env:PR_NUMBER"
+          $pr = gh api $issue | ConvertFrom-Json
+          $categories = @{
+            feat = 'feature'; fix = 'bug'; perf = 'performance'; docs = 'documentation'
+            build = 'maintenance'; chore = 'maintenance'; ci = 'maintenance'
+            refactor = 'maintenance'; style = 'maintenance'; test = 'maintenance'
+          }
+          $category = $null
+          if ($pr.title -match '^([a-z]+)(?:\([^)]*\))?(!?):') {
+            $category = if ($Matches[2] -eq '!') { 'breaking-change' } else { $categories[$Matches[1]] }
+          }
+          $managed = @($categories.Values) + 'breaking-change'
+          $labels = @($pr.labels | ForEach-Object { $_.name })
+          if ($category -and $category -notin $labels) {
+            gh api --method POST "$issue/labels" -f "labels[]=$category" --silent
+          }
+          foreach ($label in $labels) {
+            if ($label -in $managed -and $label -ne $category) {
+              gh api --method DELETE "$issue/labels/$label" --silent
+            }
+          }

@@ -2,7 +2,10 @@
   "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
   "version": "4.0",
   "nugetPackageVersion": {
-    "semVer": 1 // optional. Set to either 1 or 2 to control how the NuGet package version string is generated. Default is 1.
+    "semVer": 2
+  },
+  "assemblyVersion": {
+    "precision": "build"
   },
   "publicReleaseRefSpec": [
     "^refs/heads/main$", // we release out of main

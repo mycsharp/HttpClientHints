@@ -2,6 +2,9 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
+  <ItemGroup Label="Build">
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.94" />
+  </ItemGroup>
   <ItemGroup Label="Dependencies">
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
   </ItemGroup>

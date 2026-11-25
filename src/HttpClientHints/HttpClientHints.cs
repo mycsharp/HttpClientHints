@@ -34,6 +34,23 @@ public record class HttpClientHints(string? UserAgent, string? Platform, string?
 
     private DecodedValuesField _decoded;
 
+    /// <summary>Copies the header values into a snapshot with an empty decoder cache.</summary>
+    protected HttpClientHints(HttpClientHints original)
+    {
+        UserAgent = original.UserAgent;
+        Platform = original.Platform;
+        PlatformVersion = original.PlatformVersion;
+        Architecture = original.Architecture;
+        Model = original.Model;
+        FullVersionList = original.FullVersionList;
+        UA = original.UA;
+        Mobile = original.Mobile;
+        Headers = original.Headers;
+        Bitness = original.Bitness;
+        Wow64 = original.Wow64;
+        FormFactors = original.FormFactors;
+    }
+
     /// <summary>Gets the Sec-CH-UA-Bitness header value as sent, including quotes, for example <c>"64"</c>.</summary>
     /// <value>The header value, or <see langword="null"/> if the header is missing. <see cref="DecodedBitness"/> returns it without quotes.</value>
     public string? Bitness { get; init; }
@@ -89,22 +106,7 @@ public record class HttpClientHints(string? UserAgent, string? Platform, string?
     public string? DecodedModel
         => DecodedValues.Get(ref Decoded.Model, Model, s_decodeString);
 
-    private DecodedValues Decoded
-    {
-        get
-        {
-            DecodedValues? values = _decoded.Values;
-
-            // A with expression copies the field; the copy gets its own values, because its properties can differ
-            if (values is null || !ReferenceEquals(values.Owner, this))
-            {
-                values = new DecodedValues(this);
-                _decoded.Values = values;
-            }
-
-            return values;
-        }
-    }
+    private DecodedValues Decoded => LazyInitializer.EnsureInitialized(ref _decoded.Values);
 
     /// <summary>
     /// Holds the decoded values. Its equality is always <see langword="true"/>, so it does not change the equality of the record.
@@ -125,7 +127,7 @@ public record class HttpClientHints(string? UserAgent, string? Platform, string?
     /// The decoded values of one record. A field is <see langword="null"/> before the first access, and
     /// <see cref="s_null"/> if the decoded value is <see langword="null"/>.
     /// </summary>
-    private sealed class DecodedValues(HttpClientHints owner)
+    private sealed class DecodedValues
     {
         private static readonly object s_null = new();
 
@@ -137,8 +139,6 @@ public record class HttpClientHints(string? UserAgent, string? Platform, string?
         public object? PlatformVersion;
         public object? Architecture;
         public object? Model;
-
-        public HttpClientHints Owner { get; } = owner;
 
         public static T? Get<T>(ref object? field, string? headerValue, Func<string?, T?> decode)
             where T : class
